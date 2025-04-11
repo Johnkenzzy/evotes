@@ -10,8 +10,8 @@ class Ballot(BaseModel, models.Model):
     election = models.ForeignKey(Election, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     description = models.TextField(null=True)
-    start_date = models.DateTimeField()
-    end_date = models.DateTimeField()
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
     votes = models.IntegerField(default=0)
 
 

@@ -46,7 +46,7 @@ def elections(request, org_id=None):
                 {"error": "Name is required"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        sart_time = request.data.get('start_time', None)
+        start_time = request.data.get('start_time', None)
         end_time = request.data.get('end_time', None)
         if start_time is None or end_time is None:
             return Response(
