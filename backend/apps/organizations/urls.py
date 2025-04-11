@@ -8,16 +8,16 @@ urlpatterns = [
         name='organizations'
         ),
     path(
-        'organizations/<uuid:pk>/',
+        'organizations/<str:pk>/',
         views.organization_detail,
         name='organization_detail'
         ),
     path(
-        '<uuid:org_id>/admins/',
+        '<str:org_id>/admins/',
         views.admins, name='admins'
         ),
     path(
-        '<uuid:org_id>/admins/<uuid:pk>/',
+        '<str:org_id>/admins/<str:pk>/',
         views.admin_detail,
         name='admin_detail'
         ),

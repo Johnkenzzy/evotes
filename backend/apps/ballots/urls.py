@@ -3,20 +3,21 @@ from . import views
 
 urlpatterns = [
     path(
-        '<uuid:election_id>/elections/',
-        views.ballots, name='ballots'
+        '<str:election_id>/ballots/',
+        views.ballots,
+        name='ballots'
         ),
     path(
-        '<uuid:election_id>/elections/<uuid:pk>/',
+        '<str:election_id>/ballots/<str:pk>/',
         views.ballot_detail,
         name='ballot_detail'
         ),
     path(
-        '<uuid:ballot_id>/ballots/',
+        '<str:ballot_id>/options/',
         views.options, name='options'
         ),
     path(
-        '<uuid:ballot_id>/ballots/<uuid:pk>/',
+        '<str:ballot_id>/options/<str:pk>/',
         views.option_detail,
         name='option_detail'
         ),

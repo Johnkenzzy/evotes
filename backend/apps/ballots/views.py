@@ -6,6 +6,8 @@ from django.shortcuts import get_object_or_404
 from apps.ballots.models import Ballot, Option
 from apps.elections.models import Election
 from apps.core.utils.serializers import get_general_serializer
+from apps.core.utils.validate_uuid import is_valid_uuid
+
 
 class BallotSerializer(get_general_serializer(Ballot)):
     """Serializer for the Ballot model."""
@@ -15,6 +17,11 @@ class BallotSerializer(get_general_serializer(Ballot)):
 @api_view(['GET', 'POST'])
 def ballots(request, election_id=None):
     """Get all ballots for an election or create a new ballot."""
+    if not is_valid_uuid(election_id):
+        return Response(
+            {"error": "Invalid election ID"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
     election = get_object_or_404(Election, id=election_id)
 
     if request.method == 'GET':
@@ -37,7 +44,8 @@ def ballots(request, election_id=None):
             )
         if Ballot.objects.filter(election=election, title=title).exists():
             return Response(
-                {"error": "A ballot with this title already exists in this election"},
+                {"error": "A ballot with this \
+                        title already exists in this election"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -54,6 +62,11 @@ def ballots(request, election_id=None):
 @api_view(['GET', 'PUT', 'DELETE'])
 def ballot_detail(request, election_id=None, pk=None):
     """Get, update or delete a ballot by ID and election scope."""
+    if not is_valid_uuid(election_id) or not is_valid_uuid(pk):
+        return Response(
+            {"error": "Invalid election ID or ballot ID"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
     election = get_object_or_404(Election, id=election_id)
     ballot = get_object_or_404(Ballot, pk=pk, election=election)
 
@@ -85,6 +98,11 @@ class OptionSerializer(get_general_serializer(Option)):
 @api_view(['GET', 'POST'])
 def options(request, ballot_id=None):
     """Get all options for a ballot or create a new option."""
+    if not is_valid_uuid(ballot_id):
+        return Response(
+            {"error": "Invalid ballot ID"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
     ballot = get_object_or_404(Ballot, id=ballot_id)
 
     if request.method == 'GET':
@@ -108,7 +126,8 @@ def options(request, ballot_id=None):
 
         if Option.objects.filter(ballot=ballot, name=name).exists():
             return Response(
-                {"error": "An option with this name already exists for this ballot"},
+                {"error": "An option with this \
+                        name already exists for this ballot"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -125,6 +144,11 @@ def options(request, ballot_id=None):
 @api_view(['GET', 'PUT', 'DELETE'])
 def option_detail(request, ballot_id=None, pk=None):
     """Get, update or delete a specific option by ID and ballot scope."""
+    if not is_valid_uuid(ballot_id) or not is_valid_uuid(pk):
+        return Response(
+            {"error": "Invalid ballot ID or option ID"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
     ballot = get_object_or_404(Ballot, id=ballot_id)
     option = get_object_or_404(Option, pk=pk, ballot=ballot)
 

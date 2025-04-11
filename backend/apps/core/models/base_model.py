@@ -14,6 +14,12 @@ class BaseModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def __init__(self, *args, **kwargs):
+        """Initialize the model instance."""
+        if 'password' in kwargs:
+            kwargs['password'] = make_password(kwargs['password'])
+        super().__init__(*args, **kwargs)
+
     class Meta:
         abstract = True
         ordering = ['-created_at']  # Default ordering by latest
@@ -38,6 +44,4 @@ class BaseModel(models.Model):
     def save(self, *args, **kwargs):
         """Override save method to hash the password before saving."""
         self.updated_at = timezone.now()
-        if self.password:
-            self.password = make_password(self.password)
         super().save(*args, **kwargs)

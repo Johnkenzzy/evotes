@@ -7,6 +7,7 @@ from apps.voters.models import Voter, Vote
 from apps.organizations.models import Organization
 from apps.ballots.models import Ballot, Option
 from apps.core.utils.serializers import get_general_serializer
+from apps.core.utils.validate_uuid import is_valid_uuid
 
 
 class VoterSerializer(get_general_serializer(Voter)):
@@ -17,6 +18,11 @@ class VoterSerializer(get_general_serializer(Voter)):
 @api_view(['GET', 'POST'])
 def voters(request, org_id=None):
     """Get all voters or create a new one for an organization."""
+    if not is_valid_uuid(org_id):
+        return Response(
+            {"error": "Invalid organization ID"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
     if request.method == 'GET':
         voters = Voter.objects.filter(organisation=org_id)
         serializer = VoterSerializer(voters, many=True)
@@ -69,6 +75,11 @@ def voters(request, org_id=None):
 @api_view(['GET', 'PUT', 'DELETE'])
 def voter_detail(request, org_id=None, pk=None):
     """Get, update or delete a single voter by ID."""
+    if not is_valid_uuid(org_id) or not is_valid_uuid(pk):
+        return Response(
+            {"error": "Invalid organization ID or voter ID"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
     voter = get_object_or_404(Voter, organisation=org_id, pk=pk)
 
     if request.method == 'GET':
@@ -90,6 +101,7 @@ def voter_detail(request, org_id=None, pk=None):
         voter.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+
 class VoteSerializer(get_general_serializer(Vote)):
     """Serializer for the Vote model."""
     pass
@@ -98,6 +110,11 @@ class VoteSerializer(get_general_serializer(Vote)):
 @api_view(['GET', 'POST'])
 def votes(request, ballot_id=None):
     """Get all votes for a ballot or create a new vote."""
+    if not is_valid_uuid(ballot_id):
+        return Response(
+            {"error": "Invalid ballot ID"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
     ballot = get_object_or_404(Ballot, id=ballot_id)
 
     if request.method == 'GET':
@@ -152,6 +169,11 @@ def votes(request, ballot_id=None):
 @api_view(['GET', 'PUT', 'DELETE'])
 def vote_detail(request, ballot_id=None, pk=None):
     """Get, update or delete a vote by ID and ballot scope."""
+    if not is_valid_uuid(ballot_id) or not is_valid_uuid(pk):
+        return Response(
+            {"error": "Invalid ballot ID or vote ID"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
     ballot = get_object_or_404(Ballot, id=ballot_id)
     vote = get_object_or_404(Vote, pk=pk, ballot=ballot)
 

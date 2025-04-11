@@ -3,12 +3,13 @@ from . import views
 
 urlpatterns = [
     path(
-        '<uuid:org_id>/elections/',
-        views.elections, name='elections'
+        '<str:org_id>/elections/',
+        views.elections,
+        name='elections'
         ),
     path(
-        '<uuid:org_id>/elections/<uuid:pk>/',
+        '<str:org_id>/elections/<str:pk>/',
         views.election_detail,
-        name='admin_detail'
+        name='election_detail'
         ),
 ]

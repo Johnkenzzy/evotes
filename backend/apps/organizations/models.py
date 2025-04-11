@@ -14,6 +14,9 @@ class Organization(BaseModel, models.Model):
     website = models.URLField(null=True)
     password = models.CharField(max_length=128)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
 
 class OrganizationAdmin(BaseModel, models.Model):
     """Model for organization admins."""
@@ -21,4 +24,7 @@ class OrganizationAdmin(BaseModel, models.Model):
     full_name = models.CharField(max_length=150)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=128)
-    is_super_admin = models.BooleanField(default=False)
+    is_super_admin = models.BooleanField(default=False, null=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)

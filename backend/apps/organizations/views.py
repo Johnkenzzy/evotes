@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from apps.organizations.models import Organization
 from apps.organizations.models import OrganizationAdmin
 from apps.core.utils.serializers import get_general_serializer
+from apps.core.utils.validate_uuid import is_valid_uuid
 
 
 class OrganizationSerializer(get_general_serializer(Organization)):
@@ -62,6 +63,11 @@ def organizations(request):
 @api_view(['GET', 'PUT', 'DELETE'])
 def organization_detail(request, pk=None):
     """Get, update or delete a single organization by ID."""
+    if not is_valid_uuid(pk):
+        return Response(
+            {"error": "Invalid organization ID"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
     organization = get_object_or_404(Organization, pk=pk)
 
     if request.method == 'GET':
@@ -90,6 +96,11 @@ class OrganizationAdminSerializer(get_general_serializer(OrganizationAdmin)):
 @api_view(['GET', 'POST'])
 def admins(request, org_id=None):
     """Get all organization admins or create a new one."""
+    if not is_valid_uuid(org_id):
+        return Response(
+            {"error": "Invalid organization ID"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
     if request.method == 'GET':
         admins = OrganizationAdmin.objects.filter(organization=org_id)
         serializer = OrganizationAdminSerializer(admins, many=True)
@@ -143,8 +154,13 @@ def admins(request, org_id=None):
 
 @api_view(['GET', 'PUT', 'DELETE'])
 def admin_detail(request, org_id=None, pk=None):
-    org_id = request.data.get('organization', None)
     """Get, update or delete a single organization admin by ID."""
+    if not is_valid_uuid(org_id) or not is_valid_uuid(pk):
+        return Response(
+            {"error": "Invalid organization ID or admin ID"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    org_id = request.data.get('organization', None)
     admin = get_object_or_404(
             OrganizationAdmin, organization=org_id, pk=pk)
 

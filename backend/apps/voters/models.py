@@ -23,5 +23,6 @@ class Vote(BaseModel):
     voter = models.ForeignKey(Voter, on_delete=models.CASCADE)
     ballot = models.ForeignKey(Ballot, on_delete=models.CASCADE)
     option = models.ForeignKey(Option, on_delete=models.CASCADE)
+
     class Meta:
         unique_together = ('voter', 'ballot')
