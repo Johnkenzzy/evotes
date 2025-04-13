@@ -22,7 +22,10 @@ class Option(BaseModel, models.Model):
     title = models.CharField(max_length=255, null=True)
     photo = models.ImageField(
             upload_to='candidate_images/',
-            blank=True, null=True)
+            blank=True,
+            null=True,
+            default='candidate_images/default.jpg' 
+            )
     votes = models.IntegerField(default=0)
 
     class Meta:

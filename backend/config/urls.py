@@ -16,13 +16,16 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from apps.index.views import custom_404_view, index, stats
-# from django.conf import settings
-# from django.conf.urls.static import static
+from django.conf import settings
+from django.conf.urls.static import static
+
+from apps.index.views import index, stats
+
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('auth/', include ('apps.auth.urls')),
     path('api/v1/', index, name='index'),
     path('api/v1/stats/', stats, name='stats'),
     path('api/v1/', include('apps.organizations.urls')),
@@ -31,8 +34,9 @@ urlpatterns = [
     path('api/v1/', include('apps.ballots.urls')),
 ]
 
-# Set the custom 404 handler
-handler404 = 'apps.index.views.custom_404_view'
+if settings.DEBUG:
+    urlpatterns += static(
+        settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-# if settings.DEBUG:
-    # urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Set the custom 404 handler. Activates when debug is turned OFF
+handler404 = 'apps.index.views.custom_404_view'

@@ -1,12 +1,18 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import (api_view,
+                                       parser_classes,
+                                       authentication_classes,
+                                       permission_classes)
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
 
 from apps.organizations.models import Organization
 from apps.organizations.models import OrganizationAdmin
 from apps.core.utils.serializers import get_general_serializer
 from apps.core.utils.validate_uuid import is_valid_uuid
+from apps.core.utils.role_decorator import role_required
 
 
 class OrganizationSerializer(get_general_serializer(Organization)):
@@ -15,6 +21,9 @@ class OrganizationSerializer(get_general_serializer(Organization)):
 
 
 @api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+@role_required(['superadmin'])
+@parser_classes([MultiPartParser, FormParser])
 def organizations(request):
     """Get all organizations or create a new one."""
     if request.method == 'GET':
@@ -61,6 +70,9 @@ def organizations(request):
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+@role_required(['superadmin'])
+@parser_classes([MultiPartParser, FormParser])
 def organization_detail(request, pk=None):
     """Get, update or delete a single organization by ID."""
     if not is_valid_uuid(pk):

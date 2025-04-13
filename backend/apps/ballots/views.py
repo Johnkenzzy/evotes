@@ -1,5 +1,6 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, parser_classes
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 
@@ -96,6 +97,7 @@ class OptionSerializer(get_general_serializer(Option)):
 
 
 @api_view(['GET', 'POST'])
+@parser_classes([MultiPartParser, FormParser])
 def options(request, ballot_id=None):
     """Get all options for a ballot or create a new option."""
     if not is_valid_uuid(ballot_id):
@@ -142,6 +144,7 @@ def options(request, ballot_id=None):
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
+@parser_classes([MultiPartParser, FormParser])
 def option_detail(request, ballot_id=None, pk=None):
     """Get, update or delete a specific option by ID and ballot scope."""
     if not is_valid_uuid(ballot_id) or not is_valid_uuid(pk):

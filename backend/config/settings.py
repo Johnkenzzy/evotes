@@ -41,6 +41,7 @@ INSTALLED_APPS = [
 
     # third party apps
     'rest_framework',
+    "rest_framework_simplejwt.token_blacklist",
 
     # project apps
     'apps.organizations',
@@ -112,6 +113,17 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'apps.auth.admin.AdminJWTAuthentication',
+    ]
+}
+
+SIMPLE_JWT = {
+    'BLACKLIST_AFTER_ROTATION': True,
+}
 
 
 # Internationalization
