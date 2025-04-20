@@ -1,55 +1,23 @@
+"""Defines admin and voter authentication views."""
 import jwt
-import uuid
 from django.conf import settings
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.hashers import check_password
-from apps.organizations.models import OrganizationAdmin
-from datetime import datetime, timedelta
+from django.utils import timezone
 
 from apps.organizations.models import Organization, OrganizationAdmin
 from apps.organizations.views import OrganizationSerializer, OrganizationAdminSerializer
-
-
-SECRET_KEY = settings.SECRET_KEY
-
-def generate_jwt_token(admin):
-    access_payload = {
-        'admin_id': str(admin.id),
-        'email': admin.email,
-        'role': admin.role,
-        'exp': datetime.utcnow() + timedelta(minutes=15),
-        'iat': datetime.utcnow(),
-        'jti': str(uuid.uuid4()),
-        'type': 'access'
-    }
-
-    refresh_payload = {
-        'admin_id': str(admin.id),
-        'email': admin.email,
-        'role': admin.role,
-        'exp': datetime.utcnow() + timedelta(days=7),
-        'iat': datetime.utcnow(),
-        'jti': str(uuid.uuid4()),
-        'type': 'refresh'
-    }
-
-    access_token = jwt.encode(
-         access_payload, settings.SECRET_KEY, algorithm='HS256')
-    refresh_token = jwt.encode(
-         refresh_payload, settings.SECRET_KEY, algorithm='HS256')
-
-    return {
-        'access': access_token,
-        'refresh': refresh_token
-    }
+from apps.voters.models import Voter
+from .models import BlacklistedToken
+from apps.core.utils.generate_tokens import generate_jwt_token, generate_voter_token
 
 
 @api_view(['POST'])
 def admin_login(request):
+    """Authenticate an admin and return a JWT token."""
     email = request.data.get('email')
     password = request.data.get('password')
 
@@ -109,7 +77,8 @@ def register(request):
     org_serializer = OrganizationSerializer(data=org_data)
     if not org_serializer.is_valid():
         return Response(
-            org_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            org_serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST)
     organization = org_serializer.save()
     # Create the superadmin
     admin_data = {
@@ -124,7 +93,8 @@ def register(request):
     if not admin_serializer.is_valid():
         organization.delete()
         return Response(
-            admin_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            admin_serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST)
     admin_serializer.save()
 
     return Response({
@@ -144,13 +114,70 @@ def logout(request):
                  {"error": "Refresh token required"},
                  status=status.HTTP_400_BAD_REQUEST)
 
-        token = RefreshToken(refresh_token)
-        token.blacklist()
-        return Response(
-             {"message": "Successfully logged out"},
-             status=status.HTTP_205_RESET_CONTENT)
+        # Decode token to extract the jti
+        payload = jwt.decode(
+            refresh_token,
+            settings.SECRET_KEY,
+            algorithms=['HS256'])
 
+        if payload.get("type") != "refresh":
+            return Response(
+                {"error": "Only refresh tokens can be blacklisted."},
+                status=status.HTTP_400_BAD_REQUEST)
+
+        jti = payload.get("jti")
+        if not jti:
+            return Response(
+                {"error": "Token has no jti"},
+                status=status.HTTP_400_BAD_REQUEST)
+
+        # Blacklist it
+        BlacklistedToken.objects.get_or_create(jti=jti)
+
+        return Response(
+            {"message": "Successfully logged out"},
+            status=status.HTTP_205_RESET_CONTENT)
+
+    except jwt.ExpiredSignatureError:
+        return Response(
+            {"error": "Token has expired"},
+            status=status.HTTP_400_BAD_REQUEST)
+    except jwt.DecodeError:
+        return Response(
+            {"error": "Invalid token"},
+            status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response(
-             {"error": str(e)},
-             status=status.HTTP_400_BAD_REQUEST)
+            {"error": str(e)},
+            status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def verify_voter(request):
+    """Verify a voter's email address."""
+    email = request.data.get("email")
+    code = request.data.get("code")
+
+    try:
+        voter = Voter.objects.get(email=email, sign_in_code=code)
+
+        if voter.code_expires_at < timezone.now():
+            return Response(
+                {"error": "Code expired"},
+                status=400)
+
+        if voter.is_verified:
+            return Response(
+                {"error": "Already used"},
+                status=400)
+
+        voter.is_verified = True
+        voter.save()
+
+        token = generate_voter_token(voter)
+        return Response({"token": token}, status=200)
+
+    except Voter.DoesNotExist:
+        return Response(
+            {"error": "Invalid email or code"},
+            status=404)

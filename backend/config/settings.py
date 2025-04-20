@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
 
     # project apps
+    'apps.auth_and_auth',
     'apps.organizations',
     'apps.elections',
     'apps.voters',
@@ -61,6 +62,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'config.urls'
+
+FRONTEND_URL = 'http://localhost:5000'
 
 TEMPLATES = [
     {
@@ -117,12 +120,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'apps.auth.admin.AdminJWTAuthentication',
+        'apps.auth_and_auth.admin.AdminJWTAuthentication',
     ]
-}
-
-SIMPLE_JWT = {
-    'BLACKLIST_AFTER_ROTATION': True,
 }
 
 
