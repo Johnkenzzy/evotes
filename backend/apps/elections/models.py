@@ -11,6 +11,7 @@ class Election(BaseModel, models.Model):
                                      on_delete=models.CASCADE)
     title = models.CharField(max_length=255,
                              default='New Election')
+    description = models.TextField(null=True)
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     is_active = models.BooleanField(default=False)

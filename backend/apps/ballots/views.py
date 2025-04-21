@@ -1,6 +1,9 @@
-from rest_framework.decorators import api_view, parser_classes
+from rest_framework.decorators import (api_view,
+                                       parser_classes,
+                                       permission_classes)
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 
@@ -8,6 +11,7 @@ from apps.ballots.models import Ballot, Option
 from apps.elections.models import Election
 from apps.core.utils.serializers import get_general_serializer
 from apps.core.utils.validate_uuid import is_valid_uuid
+from apps.core.utils.role_decorator import role_required
 
 
 class BallotSerializer(get_general_serializer(Ballot)):
@@ -16,6 +20,8 @@ class BallotSerializer(get_general_serializer(Ballot)):
 
 
 @api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+@role_required(['superadmin', 'admin', 'voter'])
 def ballots(request, election_id=None):
     """Get all ballots for an election or create a new ballot."""
     if not is_valid_uuid(election_id):
@@ -31,6 +37,11 @@ def ballots(request, election_id=None):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
+        if not request.admin:
+            return Response(
+                {'error': 'Unauthorized access'},
+                status=status.HTTP_401_UNAUTHORIZED)
+
         if not request.data:
             return Response(
                 {"error": "Request body is empty"},
@@ -45,8 +56,7 @@ def ballots(request, election_id=None):
             )
         if Ballot.objects.filter(election=election, title=title).exists():
             return Response(
-                {"error": "A ballot with this \
-                        title already exists in this election"},
+                {"error": "Ballot title already exists"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -61,6 +71,8 @@ def ballots(request, election_id=None):
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+@role_required(['superadmin', 'admin', 'voter'])
 def ballot_detail(request, election_id=None, pk=None):
     """Get, update or delete a ballot by ID and election scope."""
     if not is_valid_uuid(election_id) or not is_valid_uuid(pk):
@@ -77,8 +89,13 @@ def ballot_detail(request, election_id=None, pk=None):
             serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'PUT':
+        if not request.admin:
+            return Response(
+                {'error': 'Unauthorized access'},
+                status=status.HTTP_401_UNAUTHORIZED)
+
         serializer = BallotSerializer(
-            ballot, data=request.data, partial=False)
+            ballot, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(
@@ -87,8 +104,13 @@ def ballot_detail(request, election_id=None, pk=None):
             serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
+        if not request.admin or request.admin.role != 'superadmin':
+            return Response(
+                {'error': 'Unauthorized access'},
+                status=status.HTTP_401_UNAUTHORIZED)
+
         ballot.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response([], status=status.HTTP_204_NO_CONTENT)
 
 
 class OptionSerializer(get_general_serializer(Option)):
@@ -97,7 +119,9 @@ class OptionSerializer(get_general_serializer(Option)):
 
 
 @api_view(['GET', 'POST'])
-@parser_classes([MultiPartParser, FormParser])
+@permission_classes([IsAuthenticated])
+@role_required(['superadmin', 'admin', 'voter'])
+@parser_classes([JSONParser, MultiPartParser, FormParser])
 def options(request, ballot_id=None):
     """Get all options for a ballot or create a new option."""
     if not is_valid_uuid(ballot_id):
@@ -113,6 +137,11 @@ def options(request, ballot_id=None):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
+        if not request.admin:
+            return Response(
+                {'error': 'Unauthorized access'},
+                status=status.HTTP_401_UNAUTHORIZED)
+
         if not request.data:
             return Response(
                 {"error": "Request body is empty"},
@@ -128,8 +157,7 @@ def options(request, ballot_id=None):
 
         if Option.objects.filter(ballot=ballot, name=name).exists():
             return Response(
-                {"error": "An option with this \
-                        name already exists for this ballot"},
+                {"error": "Option name already exists"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -144,7 +172,9 @@ def options(request, ballot_id=None):
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
-@parser_classes([MultiPartParser, FormParser])
+@permission_classes([IsAuthenticated])
+@role_required(['superadmin', 'admin', 'voter'])
+@parser_classes([JSONParser, MultiPartParser, FormParser])
 def option_detail(request, ballot_id=None, pk=None):
     """Get, update or delete a specific option by ID and ballot scope."""
     if not is_valid_uuid(ballot_id) or not is_valid_uuid(pk):
@@ -160,8 +190,13 @@ def option_detail(request, ballot_id=None, pk=None):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'PUT':
+        if not request.admin:
+            return Response(
+                {'error': 'Unauthorized access'},
+                status=status.HTTP_401_UNAUTHORIZED)
+
         serializer = OptionSerializer(
-            option, data=request.data, partial=False)
+            option, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(
@@ -170,5 +205,10 @@ def option_detail(request, ballot_id=None, pk=None):
             serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
+        if not request.admin or request.admin.role != 'superadmin':
+            return Response(
+                {'error': 'Unauthorized access'},
+                status=status.HTTP_401_UNAUTHORIZED)
+
         option.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response([], status=status.HTTP_204_NO_CONTENT)
