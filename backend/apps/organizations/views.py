@@ -162,10 +162,9 @@ def admins(request):
                 {"error": "Password is required"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        data = request.data.copy()
-        data['organization'] = str(org_id)
+        request.data['organization'] = str(org_id)
         # Create the organization admin
-        serializer = OrganizationAdminSerializer(data=data)
+        serializer = OrganizationAdminSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(
@@ -194,6 +193,7 @@ def admin_detail(request, pk=None):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'PUT':
+        request.data['organization'] = str(org_id)
         serializer = OrganizationAdminSerializer(
                 admin, data=request.data, partial=True)
         if serializer.is_valid():
