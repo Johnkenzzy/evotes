@@ -31,9 +31,13 @@ def admin_login(request):
             status=status.HTTP_401_UNAUTHORIZED)
 
     token = generate_jwt_token(admin)
+    admin.last_login = timezone.now()
+    admin.save()
     return Response(
         {'tokens': token,
-         'admin_id': admin.id, 'role': admin.role}
+         'admin_id': admin.id,
+         'role': admin.role,
+         'organization_id': admin.organization.id}
         )
 
 
@@ -175,9 +179,13 @@ def verify_voter(request):
         voter.save()
 
         token = generate_voter_token(voter)
-        return Response({"token": token}, status=200)
+        return Response(
+            {"token": token,
+             "voter_id": voter.id,
+             "organization_id": voter.organization},
+             status=status.HTTP_200_OK)
 
     except Voter.DoesNotExist:
         return Response(
             {"error": "Invalid email or code"},
-            status=404)
+            status=status.HTTP_400_BAD_REQUEST)

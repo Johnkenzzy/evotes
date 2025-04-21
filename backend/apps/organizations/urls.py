@@ -13,11 +13,11 @@ urlpatterns = [
         name='organization_detail'
         ),
     path(
-        '<str:org_id>/admins/',
+        'admins/',
         views.admins, name='admins'
         ),
     path(
-        '<str:org_id>/admins/<str:pk>/',
+        'admins/<str:pk>/',
         views.admin_detail,
         name='admin_detail'
         ),

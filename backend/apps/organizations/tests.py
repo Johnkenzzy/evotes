@@ -62,7 +62,8 @@ class OrganizationViewSetTestCase(APITestCase):
         }
 
         # Make PUT request to update organization
-        url = reverse('update_organization', kwargs={'pk': self.organization.pk})  # Adjust URL name if necessary
+        url = reverse('update_organization',
+                      kwargs={'pk': self.organization.pk})
         response = self.client.put(url, data, format='json')
 
         # Assert that the response status is 200 OK
@@ -74,22 +75,26 @@ class OrganizationViewSetTestCase(APITestCase):
 
     def test_get_organization(self):
         """Test getting an organization by ID"""
-        url = reverse('get_organization', kwargs={'pk': self.organization.pk})  # Adjust URL name if necessary
+        url = reverse('get_organization',
+                      kwargs={'pk': self.organization.pk})
         response = self.client.get(url)
 
         # Assert that the response status is 200 OK
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Assert that the correct organization data is returned
-        self.assertEqual(response.data['name'], self.organization.name)
+        self.assertEqual(response.data['name'],
+                         self.organization.name)
 
     def test_delete_organization(self):
         """Test deleting an organization"""
-        url = reverse('delete_organization', kwargs={'pk': self.organization.pk})  # Adjust URL name if necessary
+        url = reverse('delete_organization',
+                      kwargs={'pk': self.organization.pk})
         response = self.client.delete(url)
 
         # Assert that the response status is 204 No Content
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
         # Assert that the organization no longer exists
-        self.assertFalse(Organization.objects.filter(pk=self.organization.pk).exists())
+        self.assertFalse(
+            Organization.objects.filter(pk=self.organization.pk).exists())

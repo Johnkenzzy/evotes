@@ -5,12 +5,13 @@ from rest_framework.decorators import (api_view,
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
 
 from apps.organizations.models import Organization
 from apps.organizations.models import OrganizationAdmin
 from apps.core.utils.serializers import get_general_serializer
+from apps.auth_and_auth.admin import AdminJWTAuthentication
 from apps.core.utils.validate_uuid import is_valid_uuid
 from apps.core.utils.role_decorator import role_required
 
@@ -21,9 +22,10 @@ class OrganizationSerializer(get_general_serializer(Organization)):
 
 
 @api_view(['GET', 'POST'])
+@authentication_classes([AdminJWTAuthentication])
 @permission_classes([IsAuthenticated])
 @role_required(['superadmin'])
-@parser_classes([MultiPartParser, FormParser])
+@parser_classes([JSONParser, MultiPartParser, FormParser])
 def organizations(request):
     """Get all organizations or create a new one."""
     if request.method == 'GET':
@@ -54,11 +56,7 @@ def organizations(request):
                 {"error": "Organization with this email already exists"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        if request.data.get('password') is None:
-            return Response(
-                {"error": "Password is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+
         # Create the organization
         serializer = OrganizationSerializer(data=request.data)
         if serializer.is_valid():
@@ -70,9 +68,10 @@ def organizations(request):
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
+@authentication_classes([AdminJWTAuthentication])
 @permission_classes([IsAuthenticated])
 @role_required(['superadmin'])
-@parser_classes([MultiPartParser, FormParser])
+@parser_classes([JSONParser, MultiPartParser, FormParser])
 def organization_detail(request, pk=None):
     """Get, update or delete a single organization by ID."""
     if not is_valid_uuid(pk):
@@ -88,7 +87,7 @@ def organization_detail(request, pk=None):
 
     elif request.method == 'PUT':
         serializer = OrganizationSerializer(
-            organization, data=request.data, partial=False)
+            organization, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -97,22 +96,37 @@ def organization_detail(request, pk=None):
 
     elif request.method == 'DELETE':
         organization.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response([], status=status.HTTP_204_NO_CONTENT)
 
 
 class OrganizationAdminSerializer(get_general_serializer(OrganizationAdmin)):
     """Serializer for the OrganizationAdmin model."""
-    pass
+    def create(self, validated_data):
+        password = validated_data.pop('password', None)
+        instance = self.Meta.model(**validated_data)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
 
 
 @api_view(['GET', 'POST'])
-def admins(request, org_id=None):
+@authentication_classes([AdminJWTAuthentication])
+@permission_classes([IsAuthenticated])
+@role_required(['superadmin'])
+def admins(request):
     """Get all organization admins or create a new one."""
-    if not is_valid_uuid(org_id):
-        return Response(
-            {"error": "Invalid organization ID"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    org_id = request.admin.organization.id
+
     if request.method == 'GET':
         admins = OrganizationAdmin.objects.filter(organization=org_id)
         serializer = OrganizationAdminSerializer(admins, many=True)
@@ -125,18 +139,7 @@ def admins(request, org_id=None):
                 {"error": "Request body is empty"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        org_id = request.data.get('organization', None)
-        if org_id is None:
-            return Response(
-                {"error": "Organization is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        get_object_or_404(Organization, id=org_id)
-        if request.data.get('full_name') is None:
-            return Response(
-                {"error": "Full name is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+
         email = request.data.get('email')
         if email is None:
             return Response(
@@ -149,13 +152,20 @@ def admins(request, org_id=None):
                 "error": "Organization admin with this email already exists"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        if request.data.get('full_name') is None:
+            return Response(
+                {"error": "Full name is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         if request.data.get('password') is None:
             return Response(
                 {"error": "Password is required"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        data = request.data.copy()
+        data['organization'] = str(org_id)
         # Create the organization admin
-        serializer = OrganizationAdminSerializer(data=request.data)
+        serializer = OrganizationAdminSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
             return Response(
@@ -165,14 +175,17 @@ def admins(request, org_id=None):
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
-def admin_detail(request, org_id=None, pk=None):
+@authentication_classes([AdminJWTAuthentication])
+@permission_classes([IsAuthenticated])
+@role_required(['superadmin'])
+def admin_detail(request, pk=None):
     """Get, update or delete a single organization admin by ID."""
-    if not is_valid_uuid(org_id) or not is_valid_uuid(pk):
+    if not is_valid_uuid(pk):
         return Response(
-            {"error": "Invalid organization ID or admin ID"},
+            {"error": "Invalid admin ID"},
             status=status.HTTP_400_BAD_REQUEST
         )
-    org_id = request.data.get('organization', None)
+    org_id = request.admin.organization.id
     admin = get_object_or_404(
             OrganizationAdmin, organization=org_id, pk=pk)
 
@@ -182,7 +195,7 @@ def admin_detail(request, org_id=None, pk=None):
 
     elif request.method == 'PUT':
         serializer = OrganizationAdminSerializer(
-                admin, data=request.data, partial=False)
+                admin, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(
@@ -192,4 +205,4 @@ def admin_detail(request, org_id=None, pk=None):
 
     elif request.method == 'DELETE':
         admin.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response([], status=status.HTTP_204_NO_CONTENT)

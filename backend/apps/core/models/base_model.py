@@ -2,7 +2,6 @@
 import uuid
 from django.db import models
 from django.utils import timezone
-from django.contrib.auth.hashers import make_password
 
 
 class BaseModel(models.Model):
@@ -16,8 +15,6 @@ class BaseModel(models.Model):
 
     def __init__(self, *args, **kwargs):
         """Initialize the model instance."""
-        if 'password' in kwargs:
-            kwargs['password'] = make_password(kwargs['password'])
         super().__init__(*args, **kwargs)
 
     class Meta:

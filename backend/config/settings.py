@@ -121,6 +121,7 @@ AUTH_PASSWORD_VALIDATORS = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'apps.auth_and_auth.admin.AdminJWTAuthentication',
+        'apps.auth_and_auth.admin.VoterJWTAuthentication',
     ]
 }
 

@@ -25,7 +25,7 @@ from apps.index.views import index, stats
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('auth/', include ('apps.auth_and_auth.urls')),
+    path('auth/', include('apps.auth_and_auth.urls')),
     path('api/v1/', index, name='index'),
     path('api/v1/stats/', stats, name='stats'),
     path('api/v1/', include('apps.organizations.urls')),

@@ -18,12 +18,13 @@ class Organization(BaseModel, models.Model):
         upload_to='organization_logos/',
         blank=True,
         null=True,
-        default='organization_logo/default.jpg' 
+        default='organization_logo/default.jpg'
         )
     website = models.URLField(null=True)
 
 
 class AdminManager(BaseUserManager):
+    """Manager for organization admins."""
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError('The Email field must be set')
@@ -42,19 +43,25 @@ class OrganizationAdmin(AbstractBaseUser, PermissionsMixin, BaseModel):
     ]
     groups = models.ManyToManyField(
         Group,
-        related_name='organization_admins',  # changed from default 'user_set'
-        blank=True
+        related_name='organization_admins',
+        null=True
     )
     user_permissions = models.ManyToManyField(
         Permission,
-        related_name='organization_admins_permissions',  # changed from default 'user_set'
-        blank=True
+        related_name='organization_admins_permissions',  # changed from default
+        blank=True,                                      # 'user_set'
+        null=True
     )
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE)
     full_name = models.CharField(max_length=150)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=128)
-    role = models.CharField(max_length=30, choices=ROLE_CHOICES, default='admin')
+    role = models.CharField(
+        max_length=30,
+        choices=ROLE_CHOICES,
+        default='admin')
 
     objects = AdminManager()
 
