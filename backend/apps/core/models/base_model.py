@@ -6,10 +6,9 @@ from django.utils import timezone
 
 class BaseModel(models.Model):
     """Abstract base model to provide common fields and methods."""
-    id = models.UUIDField(
-            primary_key=True,
-            default=uuid.uuid4,
-            editable=False)
+    id = models.UUIDField(primary_key=True,
+                          default=uuid.uuid4,
+                          editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -39,6 +38,6 @@ class BaseModel(models.Model):
         super().delete(*args, **kwargs)
 
     def save(self, *args, **kwargs):
-        """Override save method to hash the password before saving."""
+        """Override save method to update time before saving."""
         self.updated_at = timezone.now()
         super().save(*args, **kwargs)
