@@ -242,5 +242,7 @@ def vote_detail(request, ballot_id=None, pk=None):
             serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
+        option = vote.option
         vote.delete()
+        option.votes = -1
         return Response([], status=status.HTTP_204_NO_CONTENT)
