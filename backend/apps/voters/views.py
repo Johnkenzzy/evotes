@@ -124,7 +124,9 @@ def send_codes(request):
     for voter in voters:
         assign_voter_code(voter, title=title, expires_at=expires_at)
     serializer = VoterSerializer(voters, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    return Response(
+      {"detail": f"Sent codes to {len(serializer.data)} voters"},
+      status=status.HTTP_200_OK)
 
 
 class VoteSerializer(get_general_serializer(Vote)):
