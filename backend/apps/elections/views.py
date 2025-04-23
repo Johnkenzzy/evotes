@@ -22,9 +22,9 @@ class ElectionSerializer(get_general_serializer(Election)):
 def elections(request):
     """Get all elections or create a new one for an organization."""
     org_id = None
-    if request.admin:
+    if hasattr(request, 'admin'):
         org_id = request.admin.organization.id
-    else:
+    elif hasattr(request, 'voter'):
         org_id = request.voter.organization.id
 
     if request.method == 'GET':
@@ -33,7 +33,7 @@ def elections(request):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
-        if not request.admin:
+        if not hasattr(request, 'admin') or not request.admin:
             return Response(
                 {'error': 'Unauthorized access'},
                 status=status.HTTP_401_UNAUTHORIZED)
@@ -51,9 +51,10 @@ def elections(request):
                 {"error": "Start time and end time are required"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        request.data['organization'] = str(org_id)
+        data = request.data.copy()
+        data['organization'] = str(org_id)
         # Create the election
-        serializer = ElectionSerializer(data=request.data)
+        serializer = ElectionSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
             return Response(
@@ -74,9 +75,9 @@ def election_detail(request, pk=None):
         )
 
     org_id = None
-    if request.admin:
+    if hasattr(request, 'admin'):
         org_id = request.admin.organization.id
-    else:
+    elif hasattr(request, 'voter'):
         org_id = request.voter.organization.id
 
     election = get_object_or_404(
@@ -88,14 +89,15 @@ def election_detail(request, pk=None):
             serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'PUT':
-        if not request.admin:
+        if not hasattr(request, 'admin') or not request.admin:
             return Response(
                 {'error': 'Unauthorized access'},
                 status=status.HTTP_401_UNAUTHORIZED)
 
-        request.data['organization'] = str(org_id)
+        data = request.data.copy()
+        data['organization'] = str(org_id)
         serializer = ElectionSerializer(
-            election, data=request.data, partial=True)
+            election, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(
@@ -104,7 +106,7 @@ def election_detail(request, pk=None):
             serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
-        if not request.admin or request.admin.role != 'superadmin':
+        if not hasattr(request, 'admin') or request.admin.role != 'superadmin':
             return Response(
                 {'error': 'Unauthorized access'},
                 status=status.HTTP_401_UNAUTHORIZED)

@@ -24,6 +24,9 @@ class AdminJWTAuthentication(BaseAuthentication):
                 token,
                 settings.SECRET_KEY,
                 algorithms=['HS256'])
+            token_type = payload.get('type')
+            if token_type not in ['access', 'refresh']:
+                raise AuthenticationFailed('Invalid token type')
 
             # Check if token has been blacklisted
             jti = payload.get('jti')
@@ -58,6 +61,7 @@ class VoterJWTAuthentication(BaseAuthentication):
             if payload.get('type') != 'voter_access':
                 raise AuthenticationFailed('Invalid token type')
             voter = Voter.objects.get(id=payload['voter_id'])
+            request.voter = voter
         except (jwt.ExpiredSignatureError, jwt.DecodeError):
             raise AuthenticationFailed('Invalid or expired token')
         except Voter.DoesNotExist:

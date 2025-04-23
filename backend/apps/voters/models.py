@@ -11,23 +11,27 @@ from apps.ballots.models import Ballot, Option
 
 class Voter(BaseModel, models.Model):
     """Define model for a Voter"""
-    organisation = models.ForeignKey(Organization,
+    organization = models.ForeignKey(Organization,
                                      on_delete=models.CASCADE)
     full_name = models.CharField(max_length=150)
-    email = models.EmailField(unique=True)
+    email = models.EmailField()
     sign_in_code = models.CharField(max_length=100,
                                     unique=True, null=True)
-    code_expires_at = models.DateTimeField(null=True)
+    expires_at = models.DateTimeField(null=True)
     is_verified = models.BooleanField(default=False)
     role = models.CharField(max_length=30,
                             default='voter')
+    
+    @property
+    def is_authenticated(self):
+        return True
 
-    def generate_sign_in_code(self, expiration_time=None):
+    def generate_sign_in_code(self, expires_at=None):
         """Generates a sign-in code for the voter"""
-        if expiration_time is None:
-            expiration_time = timezone.now() + timedelta(hours=12)
+        if expires_at is None:
+            expires_at = timezone.now() + timedelta(hours=12)
         self.sign_in_code = str(uuid.uuid4()).split("-")[0].upper()
-        self.code_expires_at = expiration_time
+        self.expires_at = expires_at
 
 
 class Vote(BaseModel):

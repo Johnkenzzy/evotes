@@ -165,24 +165,27 @@ def verify_voter(request):
     try:
         voter = Voter.objects.get(email=email, sign_in_code=code)
 
-        if voter.code_expires_at < timezone.now():
+        if voter.expires_at > timezone.now():
             return Response(
                 {"error": "Code expired"},
                 status=400)
 
         if voter.is_verified:
+            token = generate_voter_token(voter)
             return Response(
-                {"error": "Already used"},
-                status=400)
+                {"tokens": {"access": token},
+                "voter_id": voter.id,
+                "organization_id": voter.organization.id},
+                status=status.HTTP_200_OK)
 
         voter.is_verified = True
         voter.save()
 
         token = generate_voter_token(voter)
         return Response(
-            {"token": token,
+            {"tokens": token,
              "voter_id": voter.id,
-             "organization_id": voter.organization},
+             "organization_id": voter.organization.id},
              status=status.HTTP_200_OK)
 
     except Voter.DoesNotExist:

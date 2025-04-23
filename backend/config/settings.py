@@ -63,7 +63,10 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'config.urls'
 
-FRONTEND_URL = 'http://localhost:5000'
+FRONTEND_URL = 'http://localhost:8000'
+
+# settings.py (development only)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 TEMPLATES = [
     {

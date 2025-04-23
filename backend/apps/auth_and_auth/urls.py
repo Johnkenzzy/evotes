@@ -18,7 +18,7 @@ urlpatterns = [
         name='logout'
         ),
     path(
-        'voters/',
+        'verify_voter/',
         views.verify_voter,
         name='verify_voter'
     ),

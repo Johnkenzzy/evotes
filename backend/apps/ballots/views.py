@@ -37,7 +37,7 @@ def ballots(request, election_id=None):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
-        if not request.admin:
+        if not hasattr(request, 'admin') or not request.admin:
             return Response(
                 {'error': 'Unauthorized access'},
                 status=status.HTTP_401_UNAUTHORIZED)
@@ -89,7 +89,7 @@ def ballot_detail(request, election_id=None, pk=None):
             serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'PUT':
-        if not request.admin:
+        if not hasattr(request, 'admin') or not request.admin:
             return Response(
                 {'error': 'Unauthorized access'},
                 status=status.HTTP_401_UNAUTHORIZED)
@@ -104,7 +104,7 @@ def ballot_detail(request, election_id=None, pk=None):
             serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
-        if not request.admin or request.admin.role != 'superadmin':
+        if not hasattr(request, 'admin') or request.admin.role != 'superadmin':
             return Response(
                 {'error': 'Unauthorized access'},
                 status=status.HTTP_401_UNAUTHORIZED)
@@ -137,7 +137,7 @@ def options(request, ballot_id=None):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
-        if not request.admin:
+        if not hasattr(request, 'admin') or not request.admin:
             return Response(
                 {'error': 'Unauthorized access'},
                 status=status.HTTP_401_UNAUTHORIZED)
@@ -190,7 +190,7 @@ def option_detail(request, ballot_id=None, pk=None):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'PUT':
-        if not request.admin:
+        if not hasattr(request, 'admin') or not request.admin:
             return Response(
                 {'error': 'Unauthorized access'},
                 status=status.HTTP_401_UNAUTHORIZED)
@@ -205,7 +205,7 @@ def option_detail(request, ballot_id=None, pk=None):
             serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
-        if not request.admin or request.admin.role != 'superadmin':
+        if not hasattr(request, 'admin') or request.admin.role != 'superadmin':
             return Response(
                 {'error': 'Unauthorized access'},
                 status=status.HTTP_401_UNAUTHORIZED)
