@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.http import JsonResponse
 
-from apps.organizations.models import Organization, OrganizationAdmin
+from apps.organizations.models import (Organization,
+                                       OrganizationAdmin)
 from apps.elections.models import Election
 from apps.voters.models import Voter, Vote
 from apps.ballots.models import Ballot, Option

@@ -1,14 +1,19 @@
 from rest_framework.decorators import (api_view,
                                        parser_classes,
+                                       authentication_classes,
                                        permission_classes)
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
+from rest_framework.parsers import (JSONParser,
+                                    MultiPartParser,
+                                    FormParser)
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 
 from apps.ballots.models import Ballot, Option
 from apps.elections.models import Election
+from apps.auth_and_auth.admin import (AdminJWTAuthentication,
+                                      VoterJWTAuthentication)
 from apps.core.utils.serializers import get_general_serializer
 from apps.core.utils.validate_uuid import is_valid_uuid
 from apps.core.utils.role_decorator import role_required
@@ -20,8 +25,9 @@ class BallotSerializer(get_general_serializer(Ballot)):
 
 
 @api_view(['GET', 'POST'])
+@authentication_classes([AdminJWTAuthentication])
 @permission_classes([IsAuthenticated])
-@role_required(['superadmin', 'admin', 'voter'])
+@role_required(['superadmin', 'admin'])
 def ballots(request, election_id=None):
     """Get all ballots for an election or create a new ballot."""
     if not is_valid_uuid(election_id):
@@ -37,11 +43,6 @@ def ballots(request, election_id=None):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
-        if not hasattr(request, 'admin') or not request.admin:
-            return Response(
-                {'error': 'Unauthorized access'},
-                status=status.HTTP_401_UNAUTHORIZED)
-
         if not request.data:
             return Response(
                 {"error": "Request body is empty"},
@@ -59,9 +60,9 @@ def ballots(request, election_id=None):
                 {"error": "Ballot title already exists"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
-        request.data['election'] = str(election.id)
-        serializer = BallotSerializer(data=request.data)
+        data = data.request.copy()
+        data['election'] = str(election.id)
+        serializer = BallotSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
             return Response(
@@ -70,9 +71,28 @@ def ballots(request, election_id=None):
             serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['GET', 'PUT', 'DELETE'])
+@api_view(['GET'])
+@authentication_classes([VoterJWTAuthentication])
 @permission_classes([IsAuthenticated])
-@role_required(['superadmin', 'admin', 'voter'])
+@role_required(['voter'])
+def get_ballots(request, election_id=None):
+    """Get all ballots for an election ."""
+    if not is_valid_uuid(election_id):
+        return Response(
+            {"error": "Invalid election ID"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    election = get_object_or_404(Election, id=election_id)
+
+    ballots = Ballot.objects.filter(election=election)
+    serializer = BallotSerializer(ballots, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@authentication_classes([AdminJWTAuthentication])
+@permission_classes([IsAuthenticated])
+@role_required(['superadmin', 'admin'])
 def ballot_detail(request, election_id=None, pk=None):
     """Get, update or delete a ballot by ID and election scope."""
     if not is_valid_uuid(election_id) or not is_valid_uuid(pk):
@@ -89,13 +109,10 @@ def ballot_detail(request, election_id=None, pk=None):
             serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'PUT':
-        if not hasattr(request, 'admin') or not request.admin:
-            return Response(
-                {'error': 'Unauthorized access'},
-                status=status.HTTP_401_UNAUTHORIZED)
-
+        data = request.data.copy()
+        data['election'] = str(election_id)
         serializer = BallotSerializer(
-            ballot, data=request.data, partial=True)
+            ballot, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(
@@ -119,8 +136,9 @@ class OptionSerializer(get_general_serializer(Option)):
 
 
 @api_view(['GET', 'POST'])
+@authentication_classes([AdminJWTAuthentication])
 @permission_classes([IsAuthenticated])
-@role_required(['superadmin', 'admin', 'voter'])
+@role_required(['superadmin', 'admin'])
 @parser_classes([JSONParser, MultiPartParser, FormParser])
 def options(request, ballot_id=None):
     """Get all options for a ballot or create a new option."""
@@ -161,8 +179,9 @@ def options(request, ballot_id=None):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        request.data['ballot'] = str(ballot.id)
-        serializer = OptionSerializer(data=request.data)
+        data = request.data.copy()
+        data['ballot'] = str(ballot.id)
+        serializer = OptionSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
             return Response(
@@ -171,9 +190,30 @@ def options(request, ballot_id=None):
             serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['GET', 'PUT', 'DELETE'])
+@api_view(['GET'])
+@authentication_classes([VoterJWTAuthentication])
 @permission_classes([IsAuthenticated])
-@role_required(['superadmin', 'admin', 'voter'])
+@role_required(['voter'])
+@parser_classes([JSONParser, MultiPartParser, FormParser])
+def get_options(request, ballot_id=None):
+    """Get all options for a ballot."""
+    if not is_valid_uuid(ballot_id):
+        return Response(
+            {"error": "Invalid ballot ID"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    ballot = get_object_or_404(Ballot, id=ballot_id)
+
+    if request.method == 'GET':
+        options = Option.objects.filter(ballot=ballot)
+        serializer = OptionSerializer(options, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@authentication_classes([AdminJWTAuthentication])
+@permission_classes([IsAuthenticated])
+@role_required(['superadmin', 'admin'])
 @parser_classes([JSONParser, MultiPartParser, FormParser])
 def option_detail(request, ballot_id=None, pk=None):
     """Get, update or delete a specific option by ID and ballot scope."""
@@ -190,13 +230,10 @@ def option_detail(request, ballot_id=None, pk=None):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'PUT':
-        if not hasattr(request, 'admin') or not request.admin:
-            return Response(
-                {'error': 'Unauthorized access'},
-                status=status.HTTP_401_UNAUTHORIZED)
-
+        data = request.data.copy()
+        data['ballot'] = str(ballot.id)
         serializer = OptionSerializer(
-            option, data=request.data, partial=True)
+            option, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(
@@ -205,7 +242,7 @@ def option_detail(request, ballot_id=None, pk=None):
             serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
-        if not hasattr(request, 'admin') or request.admin.role != 'superadmin':
+        if request.admin.role != 'superadmin':
             return Response(
                 {'error': 'Unauthorized access'},
                 status=status.HTTP_401_UNAUTHORIZED)

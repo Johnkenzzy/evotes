@@ -165,7 +165,7 @@ def admins(request):
         data = request.data.copy()
         data['organization'] = str(org_id)
         # Create the organization admin
-        serializer = OrganizationAdminSerializer(data=request.data)
+        serializer = OrganizationAdminSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
             return Response(

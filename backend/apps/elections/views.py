@@ -1,4 +1,5 @@
 from rest_framework.decorators import (api_view,
+                                       authentication_classes,
                                        permission_classes)
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -6,6 +7,8 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 
 from apps.elections.models import Election
+from apps.auth_and_auth.admin import (AdminJWTAuthentication,
+                                      VoterJWTAuthentication)
 from apps.core.utils.serializers import get_general_serializer
 from apps.core.utils.validate_uuid import is_valid_uuid
 from apps.core.utils.role_decorator import role_required
@@ -17,20 +20,18 @@ class ElectionSerializer(get_general_serializer(Election)):
 
 
 @api_view(['GET', 'POST'])
+@authentication_classes([AdminJWTAuthentication])
 @permission_classes([IsAuthenticated])
-@role_required(['superadmin', 'admin', 'voter'])
+@role_required(['superadmin', 'admin'])
 def elections(request):
     """Get all elections or create a new one for an organization."""
-    org_id = None
-    if hasattr(request, 'admin'):
-        org_id = request.admin.organization.id
-    elif hasattr(request, 'voter'):
-        org_id = request.voter.organization.id
+    org_id = request.admin.organization.id
 
     if request.method == 'GET':
         elections = Election.objects.filter(organization=org_id)
         serializer = ElectionSerializer(elections, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(
+            serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
         if not hasattr(request, 'admin') or not request.admin:
@@ -63,9 +64,24 @@ def elections(request):
             serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['GET', 'PUT', 'DELETE'])
+@api_view(['GET'])
+@authentication_classes([VoterJWTAuthentication])
 @permission_classes([IsAuthenticated])
-@role_required(['superadmin', 'admin', 'voter'])
+@role_required(['voter'])
+def get_elections(request):
+    """Get all elections."""
+    org_id = request.voter.organization.id
+
+    elections = Election.objects.filter(organization=org_id)
+    serializer = ElectionSerializer(elections, many=True)
+    return Response(
+        serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@authentication_classes([AdminJWTAuthentication])
+@permission_classes([IsAuthenticated])
+@role_required(['superadmin', 'admin'])
 def election_detail(request, pk=None):
     """Get, update or delete a single election by ID."""
     if not is_valid_uuid(pk):
@@ -77,8 +93,6 @@ def election_detail(request, pk=None):
     org_id = None
     if hasattr(request, 'admin'):
         org_id = request.admin.organization.id
-    elif hasattr(request, 'voter'):
-        org_id = request.voter.organization.id
 
     election = get_object_or_404(
         Election, organization=org_id, pk=pk)
@@ -89,11 +103,6 @@ def election_detail(request, pk=None):
             serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'PUT':
-        if not hasattr(request, 'admin') or not request.admin:
-            return Response(
-                {'error': 'Unauthorized access'},
-                status=status.HTTP_401_UNAUTHORIZED)
-
         data = request.data.copy()
         data['organization'] = str(org_id)
         serializer = ElectionSerializer(
@@ -106,7 +115,7 @@ def election_detail(request, pk=None):
             serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
-        if not hasattr(request, 'admin') or request.admin.role != 'superadmin':
+        if request.admin.role != 'superadmin':
             return Response(
                 {'error': 'Unauthorized access'},
                 status=status.HTTP_401_UNAUTHORIZED)

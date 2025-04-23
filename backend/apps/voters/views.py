@@ -8,7 +8,8 @@ from django.shortcuts import get_object_or_404
 
 from apps.voters.models import Voter, Vote
 from apps.ballots.models import Ballot, Option
-from apps.auth_and_auth.admin import AdminJWTAuthentication, VoterJWTAuthentication
+from apps.auth_and_auth.admin import (AdminJWTAuthentication,
+                                      VoterJWTAuthentication)
 from apps.core.utils.serializers import get_general_serializer
 from apps.core.utils.validate_uuid import is_valid_uuid
 from apps.core.utils.role_decorator import role_required
@@ -136,7 +137,7 @@ class VoteSerializer(get_general_serializer(Vote)):
 @permission_classes([IsAuthenticated])
 @role_required(['superadmin', 'admin'])
 def get_votes(request, ballot_id=None):
-    """Get all votes for a ballot or create a new vote."""
+    """Get all votes for a ballot"""
     if not is_valid_uuid(ballot_id):
         return Response(
             {"error": "Invalid ballot ID"},
@@ -156,7 +157,7 @@ def get_votes(request, ballot_id=None):
 @permission_classes([IsAuthenticated])
 @role_required(['voter'])
 def cast_votes(request, ballot_id=None):
-    """Get all votes for a ballot or create a new vote."""
+    """Cast vote within a ballot choosing a particular option."""
     if not is_valid_uuid(ballot_id):
         return Response(
             {"error": "Invalid ballot ID"},
