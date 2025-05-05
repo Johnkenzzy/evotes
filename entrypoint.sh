@@ -11,7 +11,7 @@ done
 echo "PostgreSQL is up - running migrations..."
 
 # Run DB migrations and collect static files
-python manage.py migrate --noinput
+python backend/manage.py migrate --noinput
 
 # Launch gunicorn server
 exec "$@"
