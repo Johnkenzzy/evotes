@@ -1,25 +1,27 @@
-# Use official Python image
-FROM python:3.10-slim
+FROM python:3.12-slim
+
+# Install PostgreSQL and other dependencies
+RUN apt-get update && apt-get install -y \
+    postgresql postgresql-contrib \
+    libpq-dev gcc netcat-openbsd supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create postgres data directory
+RUN mkdir -p /var/lib/postgresql/data /run/postgresql && \
+    chown -R postgres:postgres /var/lib/postgresql /run/postgresql
 
 # Set work directory
 WORKDIR /evotes
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y netcat libpq-dev gcc postgresql-client && rm -rf /var/lib/apt/lists/*
-
-# Install python dependencies
-COPY requirements.txt ./backend/requirements.txt
-RUN pip install --no-cache-dir -r backend/requirements.txt
-
-# Copy project
+# Copy app code
 COPY . .
 
-# Make entrypoint script executable
-COPY entrypoint.sh .
-RUN chmod +x entrypoint.sh
+# Install Python packages
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose port
-EXPOSE 8000
+# Copy supervisord config
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Start server
-CMD ["sh", "./entrypoint.sh"]
+# Entrypoint script
+RUN chmod +x ./entrypoint.sh
+ENTRYPOINT ["./entrypoint.sh"]

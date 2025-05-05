@@ -1,16 +1,32 @@
-#!/bin/sh
+#!/bin/bash
+set -e
 
-echo "Waiting for PostgreSQL..."
+DATA_DIR="/var/lib/postgresql/data"
 
-while ! nc -z "$DB_HOST" "$DB_PORT"; do
+# Initialize DB only if it hasn't been already
+if [ ! -s "$DATA_DIR/PG_VERSION" ]; then
+    echo "Initializing PostgreSQL data directory..."
+    su - postgres -c "/usr/lib/postgresql/15/bin/initdb -D $DATA_DIR"
+fi
+
+# Start PostgreSQL in the background
+echo "Starting PostgreSQL..."
+su - postgres -c "/usr/lib/postgresql/15/bin/pg_ctl -D $DATA_DIR -l /tmp/logfile start"
+
+# Wait until PostgreSQL is ready
+until su - postgres -c "pg_isready -d postgres"; do
+  echo "Waiting for PostgreSQL to be ready..."
   sleep 1
 done
 
-echo "PostgreSQL is up - continuing..."
+# Run init.sql
+echo "Running database initialization SQL script..."
+su - postgres -c "psql -d postgres -f /evotes/init.sql"
 
-# Optional: Run migrations and collect static files
-python backend/manage.py migrate --noinput
-python backend/manage.py collectstatic --noinput
+# Stop PostgreSQL (optional, if you want supervisord to start it cleanly)
+echo "Stopping PostgreSQL temporarily..."
+su - postgres -c "/usr/lib/postgresql/15/bin/pg_ctl -D $DATA_DIR -m fast stop"
 
-# Start the application
-exec gunicorn backend.config.wsgi:application --bind 0.0.0.0:8000
+# Start supervisord (to manage both Django and PostgreSQL)
+echo "Starting supervisord..."
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

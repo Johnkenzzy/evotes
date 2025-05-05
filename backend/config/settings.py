@@ -96,8 +96,8 @@ DATABASES = {
         'NAME': os.environ.get('DB_NAME', 'evotes_dev_db'),
         'USER': os.environ.get('DB_USER', 'evotes_dev'),
         'PASSWORD': os.environ.get('DB_PASSWORD', 'evotes_dev_pwd'),
-        'HOST': os.environ.get('DB_HOST', 'db'),
-        'PORT': os.environ.get('DB_PORT', '5433'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
