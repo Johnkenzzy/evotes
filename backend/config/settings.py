@@ -93,11 +93,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME', 'evotes_dev_db'),
-        'USER': os.environ.get('DB_USER', 'evotes_dev'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'evotes_dev_pwd'),
-        'HOST': os.environ.get('DB_HOST', 'localhost'),
-        'PORT': os.environ.get('DB_PORT', '5432'),
+        'NAME': os.environ.get('PGDATABASE', 'evotes_dev_db'),
+        'USER': os.environ.get('PGUSER', 'evotes_dev'),
+        'PASSWORD': os.environ.get('PGPASSWORD', 'evotes_dev_pwd'),
+        'HOST': os.environ.get('PGHOST', 'localhost'),
+        'PORT': os.environ.get('PGPORT', '5432'),
     }
 }
 
