@@ -28,7 +28,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -54,6 +53,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'middleware.force_slash_redirect.ForceSlashMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -65,7 +65,7 @@ ROOT_URLCONF = 'config.urls'
 
 FRONTEND_URL = 'http://localhost:8000'
 
-# settings.py (development only)
+# Email settings (development only)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 TEMPLATES = [
@@ -93,11 +93,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('PGDATABASE', 'evotes_dev_db'),
-        'USER': os.environ.get('PGUSER', 'evotes_dev'),
-        'PASSWORD': os.environ.get('PGPASSWORD', 'evotes_dev_pwd'),
-        'HOST': os.environ.get('PGHOST', 'localhost'),
-        'PORT': os.environ.get('PGPORT', '5432'),
+        'NAME': os.environ.get('DB_NAME', 'evotes_dev_db'),
+        'USER': os.environ.get('DB_USER', 'evotes_dev'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'evotes_dev_pwd'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
