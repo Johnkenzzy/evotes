@@ -20,6 +20,10 @@ def admin_login(request):
     """Authenticate an admin and return a JWT token."""
     email = request.data.get('email')
     password = request.data.get('password')
+    if not email or not password:
+        return Response(
+            {'error': "Password and email are required"},
+            status=status.HTTP_400_BAD_REQUEST)
 
     try:
         admin = OrganizationAdmin.objects.get(email=email)
