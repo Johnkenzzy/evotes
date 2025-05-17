@@ -32,26 +32,12 @@ def voters(request):
     if request.method == 'GET':
         voters = Voter.objects.filter(organization=org_id)
         serializer = VoterSerializer(voters, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(
+            serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
-        if not request.data:
-            return Response(
-                {"error": "Request body is empty"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        if request.data.get('full_name') is None:
-            return Response(
-                {"error": "Full name is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # Check email uniqueness
         email = request.data.get('email')
-        if email is None:
-            return Response(
-                {"error": "Email is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
         if Voter.objects.filter(organization=org_id, email=email).exists():
             return Response({
                 "error": "Voter with this email already exists"
@@ -134,6 +120,50 @@ class VoteSerializer(get_general_serializer(Vote)):
     pass
 
 
+@api_view(['POST'])
+@authentication_classes([VoterJWTAuthentication])
+@permission_classes([IsAuthenticated])
+@role_required(['voter'])
+def cast_votes(request, ballot_id=None):
+    """Cast vote within a ballot choosing a particular option."""
+    if not is_valid_uuid(ballot_id):
+        return Response(
+            {"error": "Invalid ballot ID"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    ballot = get_object_or_404(Ballot, id=ballot_id)
+
+    voter_id = request.voter.id
+    voter = get_object_or_404(Voter, id=voter_id)
+    if not voter.is_verified:
+        return Response(
+            {"error": "Voter not verified"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    # Check if vote already exists
+    if Vote.objects.filter(voter=voter, ballot=ballot).exists():
+        return Response(
+            {"error": "Voter has already voted"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    option_id = request.data.get('option', None)
+    option = get_object_or_404(Option, id=option_id, ballot=ballot)
+    data = request.data.copy()
+    data['voter'] = voter_id
+    data['ballot'] = ballot_id
+    # Create the vote
+    request.data['ballot'] = str(ballot.id)
+    serializer = VoteSerializer(data=data)
+    if serializer.is_valid():
+        serializer.save()
+        option.votes = option.votes + 1
+        option.save()
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED)
+    return Response(
+        serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 @api_view(['GET'])
 @authentication_classes([AdminJWTAuthentication])
 @permission_classes([IsAuthenticated])
@@ -154,79 +184,20 @@ def get_votes(request, ballot_id=None):
             serializer.data, status=status.HTTP_200_OK)
 
 
-@api_view(['POST'])
-@authentication_classes([VoterJWTAuthentication])
-@permission_classes([IsAuthenticated])
-@role_required(['voter'])
-def cast_votes(request, ballot_id=None):
-    """Cast vote within a ballot choosing a particular option."""
-    if not is_valid_uuid(ballot_id):
-        return Response(
-            {"error": "Invalid ballot ID"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    ballot = get_object_or_404(Ballot, id=ballot_id)
-
-    if not request.data:
-        return Response(
-            {"error": "Request body is empty"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    voter_id = request.voter.id
-    voter = get_object_or_404(Voter, id=voter_id)
-    if not voter.is_verified:
-        return Response(
-            {"error": "Voter not verified"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    # Check if vote already exists
-    if Vote.objects.filter(voter=voter, ballot=ballot).exists():
-        return Response(
-            {"error": "Voter has already voted"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    option_id = request.data.get('option', None)
-    if option_id is None:
-        return Response(
-            {"error": "Option is required"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    option = get_object_or_404(Option, id=option_id, ballot=ballot)
-    data = request.data.copy()
-    data['voter'] = voter_id
-    data['ballot'] = ballot_id
-    # Create the vote
-    request.data['ballot'] = str(ballot.id)
-    serializer = VoteSerializer(data=data)
-    if serializer.is_valid():
-        serializer.save()
-        option.votes = +1
-        option.save()
-        return Response(
-            serializer.data, status=status.HTTP_201_CREATED)
-    return Response(
-        serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
 @api_view(['GET', 'PUT', 'DELETE'])
 @authentication_classes([VoterJWTAuthentication])
 @permission_classes([IsAuthenticated])
 @role_required(['voter'])
-def vote_detail(request, ballot_id=None, pk=None):
+def vote_detail(request, ballot_id=None):
     """Get, update or delete a vote by ID and ballot scope."""
-    if not is_valid_uuid(ballot_id) or not is_valid_uuid(pk):
+    if not is_valid_uuid(ballot_id):
         return Response(
             {"error": "Invalid ballot ID or vote ID"},
             status=status.HTTP_400_BAD_REQUEST
         )
     ballot = get_object_or_404(Ballot, id=ballot_id)
-    vote = get_object_or_404(Vote, pk=pk, ballot=ballot)
-
-    if vote.voter.id != request.voter.id:
-        return Response(
-                {'error': 'Unauthorized access'},
-                status=status.HTTP_401_UNAUTHORIZED)
+    voter = get_object_or_404(Voter, id=request.voter.id)
+    vote = get_object_or_404(Vote, ballot=ballot.id, voter=voter.id)
 
     if request.method == 'GET':
         serializer = VoteSerializer(vote)
@@ -234,17 +205,27 @@ def vote_detail(request, ballot_id=None, pk=None):
             serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'PUT':
+        prev_option = get_object_or_404(Option, ballot=ballot, vote=vote)
+        new_option = get_object_or_404(Option, id=request.data["option"])
+
         serializer = VoteSerializer(
             vote, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
+            if prev_option != new_option:
+                prev_option.votes = prev_option.votes - 1
+                prev_option.save()
+                new_option.votes = new_option.votes + 1
+                new_option.save()
             return Response(
                 serializer.data, status=status.HTTP_200_OK)
         return Response(
             serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
-        option = vote.option
+        option = get_object_or_404(Option, ballot=ballot, vote=vote)
         vote.delete()
-        option.votes = -1
-        return Response([], status=status.HTTP_204_NO_CONTENT)
+        option.votes = option.votes - 1
+        option.save()
+        return Response(
+            [], status=status.HTTP_204_NO_CONTENT)

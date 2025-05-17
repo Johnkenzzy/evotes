@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.hashers import check_password
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
 
 from apps.organizations.models import Organization, OrganizationAdmin
 from apps.organizations.views import OrganizationSerializer, OrganizationAdminSerializer
@@ -161,38 +162,32 @@ def logout(request):
 
 
 @api_view(['POST'])
-def verify_voter(request):
+def verify_voter(request, id=None):
     """Verify a voter's email address."""
     email = request.data.get("email")
     code = request.data.get("code")
 
-    try:
-        voter = Voter.objects.get(email=email, sign_in_code=code)
+    voter = get_object_or_404(Voter, email=email, sign_in_code=code)
 
-        if voter.expires_at > timezone.now():
-            return Response(
-                {"error": "Code expired"},
-                status=400)
+    if voter.expires_at < timezone.now():
+        return Response(
+            {"error": "Code expired"},
+            status=400)
 
-        if voter.is_verified:
-            token = generate_voter_token(voter)
-            return Response(
-                {"tokens": {"access": token},
-                "voter_id": voter.id,
-                "organization_id": voter.organization.id},
-                status=status.HTTP_200_OK)
-
-        voter.is_verified = True
-        voter.save()
-
+    if voter.is_verified:
         token = generate_voter_token(voter)
         return Response(
-            {"tokens": token,
-             "voter_id": voter.id,
-             "organization_id": voter.organization.id},
-             status=status.HTTP_200_OK)
+            {"tokens": {"access": token},
+            "voter_id": voter.id,
+            "organization_id": voter.organization.id},
+            status=status.HTTP_200_OK)
 
-    except Voter.DoesNotExist:
-        return Response(
-            {"error": "Invalid email or code"},
-            status=status.HTTP_400_BAD_REQUEST)
+    voter.is_verified = True
+    voter.save()
+
+    token = generate_voter_token(voter)
+    return Response(
+        {"tokens": token,
+        "voter_id": voter.id,
+        "organization_id": voter.organization.id},
+        status=status.HTTP_200_OK)

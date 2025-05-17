@@ -28,7 +28,7 @@ urlpatterns = [
         name='get_votes'
         ),
     path(
-        '<str:ballot_id>/votes/<str:pk>/',
+        '<str:ballot_id>/votes/',
         views.vote_detail,
         name='vote_detail'
         ),
