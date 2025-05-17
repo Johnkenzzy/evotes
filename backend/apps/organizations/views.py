@@ -34,29 +34,6 @@ def organizations(request):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
-        # Validate the request data
-        if not request.data:
-            return Response(
-                {"error": "Request body is empty"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        if request.data.get('name') is None:
-            return Response(
-                {"error": "Name is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        email = request.data.get('email')
-        if email is None:
-            return Response(
-                {"error": "Email is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        if Organization.objects.filter(email=email).exists():
-            return Response(
-                {"error": "Organization with this email already exists"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
         # Create the organization
         serializer = OrganizationSerializer(data=request.data)
         if serializer.is_valid():
@@ -133,35 +110,6 @@ def admins(request):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
-        # Validate the request data
-        if not request.data:
-            return Response(
-                {"error": "Request body is empty"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        email = request.data.get('email')
-        if email is None:
-            return Response(
-                {"error": "Email is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        if OrganizationAdmin.objects.filter(
-                organization=org_id, email=email).exists():
-            return Response({
-                "error": "Organization admin with this email already exists"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        if request.data.get('full_name') is None:
-            return Response(
-                {"error": "Full name is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        if request.data.get('password') is None:
-            return Response(
-                {"error": "Password is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
         data = request.data.copy()
         data['organization'] = str(org_id)
         # Create the organization admin
@@ -207,4 +155,5 @@ def admin_detail(request, pk=None):
 
     elif request.method == 'DELETE':
         admin.delete()
-        return Response([], status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            [], status=status.HTTP_204_NO_CONTENT)
