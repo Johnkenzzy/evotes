@@ -31,13 +31,67 @@ def index(request):
     return Response({
         "message": "Welcome to the eVotes API Version 1.0",
         "endpoints": {
-            "Organizations": "/api/v1/organizations/",
-            "Admins": "/api/v1/<org_id>/admins/",
-            "Elections": "/api/v1/<org_id>/elections/",
-            "Voters": "/api/v1/<org_id>/voters/",
-            "Votes": "/api/v1/<ballot_id>/votes/",
-            "Ballots": "/api/v1/<election_id>/elections/",
-            "Options": "/api/v1/<ballot_id>/ballots/"
+            "API Root": "/api/v1/",
+            "Organizations": {
+                "List": "/api/v1/organizations/",
+                "Create": "/api/v1/organizations/",
+                "Read": "/api/v1/organizations/{id}/",
+                "Update": "/api/v1/organizations/{id}/",
+                "Delete": "/api/v1/organizations/{id}/"
+            },
+            "Admins": {
+                "List": "/api/v1/admins/",
+                "Create": "/api/v1/admins/",
+                "Read": "/api/v1/admins/{id}/",
+                "Update": "/api/v1/admins/{id}/",
+                "Delete": "/api/v1/admins/{id}/"
+            },
+            "Elections": {
+                "List": "/api/v1/elections/",
+                "Create": "/api/v1/elections/",
+                "Read": "/api/v1/elections/{id}/",
+                "Update": "/api/v1/elections/{id}/",
+                "Delete": "/api/v1/elections/{id}/",
+                "Get by Voter": "/api/v1/get_elections/"
+            },
+            "Ballots": {
+                "List": "/api/v1/{election_id}/ballots/",
+                "Create": "/api/v1/{election_id}/ballots/",
+                "Read": "/api/v1/{election_id}/ballots/{id}/",
+                "Update": "/api/v1/{election_id}/ballots/{id}/",
+                "Delete": "/api/v1/{election_id}/ballots/{id}/",
+                "Get by Election": "/api/v1/{election_id}/get_ballots/"
+            },
+            "Options": {
+                "List": "/api/v1/{ballot_id}/options/",
+                "Create": "/api/v1/{ballot_id}/options/",
+                "Read": "/api/v1/{ballot_id}/options/{id}/",
+                "Update": "/api/v1/{ballot_id}/options/{id}/",
+                "Delete": "/api/v1/{ballot_id}/options/{id}/",
+                "Get Options": "/api/v1/{ballot_id}/get_options/"
+            },
+            "Votes": {
+                "List": "/api/v1/{ballot_id}/votes/",
+                "Update": "/api/v1/{ballot_id}/votes/",
+                "Delete": "/api/v1/{ballot_id}/votes/",
+                "Get Votes": "/api/v1/{ballot_id}/get_votes/",
+                "Cast Vote": "/api/v1/{ballot_id}/cast_votes/"
+            },
+            "Voters": {
+                "List": "/api/v1/voters/",
+                "Create": "/api/v1/voters/",
+                "Read": "/api/v1/voters/{id}/",
+                "Update": "/api/v1/voters/{id}/",
+                "Delete": "/api/v1/voters/{id}/",
+                "Send Codes": "/api/v1/voters/send_codes/"
+            },
+            "Stats": "/api/v1/stats/"
+        },
+        "auth": {
+            "Login": "/auth/login/",
+            "Logout": "/auth/logout/",
+            "Register": "/auth/register/",
+            "Verify Voter": "/auth/verify_voter/"
         }
     }, status=status.HTTP_200_OK)
 
