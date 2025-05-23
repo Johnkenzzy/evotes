@@ -41,6 +41,7 @@ def generate_jwt_token(admin):
         'refresh': refresh_token
     }
 
+
 def generate_voter_token(voter):
     """Generates a JWT token for a voter."""
     payload = {

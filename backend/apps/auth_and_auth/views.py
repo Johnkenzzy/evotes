@@ -10,10 +10,12 @@ from django.utils import timezone
 from django.shortcuts import get_object_or_404
 
 from apps.organizations.models import Organization, OrganizationAdmin
-from apps.organizations.views import OrganizationSerializer, OrganizationAdminSerializer
+from apps.organizations.views import (OrganizationSerializer,
+                                      OrganizationAdminSerializer)
 from apps.voters.models import Voter
 from .models import BlacklistedToken
-from apps.core.utils.generate_tokens import generate_jwt_token, generate_voter_token
+from apps.core.utils.generate_tokens import (generate_jwt_token,
+                                             generate_voter_token)
 
 
 @api_view(['POST'])
@@ -30,7 +32,7 @@ def admin_login(request):
         admin = OrganizationAdmin.objects.get(email=email)
         if not check_password(password, admin.password):
             raise Exception()
-    except:
+    except Exception:
         return Response(
             {'error': 'Invalid credentials'},
             status=status.HTTP_401_UNAUTHORIZED)
@@ -50,10 +52,10 @@ def admin_login(request):
 def register(request):
     """Register a new organization and create a superadmin for it."""
     if not request.data:
-            return Response(
-                {"error": "Request body is empty"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        return Response(
+            {"error": "Request body is empty"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
     data = request.data
     org_name = data.get('organization_name', None)
     org_email = data.get('organization_email', None)
@@ -66,24 +68,27 @@ def register(request):
             {"error": "Organization name and email are required"},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
+
     if not admin_name or not admin_email or not password:
         return Response(
             {"error": "Admin fullname, email and password are required"},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
+
     if Organization.objects.filter(email=org_email).exists():
-            return Response(
-                {"error": "Organization with this email already exists"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        return Response(
+            {"error": "Organization with this email already exists"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
     # Create the organization
     org_data = {
         "name": org_name,
         "email": org_email
         }
-    org_serializer = OrganizationSerializer(data=org_data)
+    org_serializer = OrganizationSerializer(
+        data=org_data,
+        context={'request': request}
+    )
     if not org_serializer.is_valid():
         return Response(
             org_serializer.errors,
@@ -178,8 +183,8 @@ def verify_voter(request, id=None):
         token = generate_voter_token(voter)
         return Response(
             {"tokens": {"access": token},
-            "voter_id": voter.id,
-            "organization_id": voter.organization.id},
+                "voter_id": voter.id,
+                "organization_id": voter.organization.id},
             status=status.HTTP_200_OK)
 
     voter.is_verified = True
@@ -188,6 +193,6 @@ def verify_voter(request, id=None):
     token = generate_voter_token(voter)
     return Response(
         {"tokens": token,
-        "voter_id": voter.id,
-        "organization_id": voter.organization.id},
+            "voter_id": voter.id,
+            "organization_id": voter.organization.id},
         status=status.HTTP_200_OK)
