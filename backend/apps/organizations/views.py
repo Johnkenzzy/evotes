@@ -4,9 +4,10 @@ from rest_framework.decorators import (api_view,
                                        permission_classes)
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, serializers
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 
 from apps.organizations.models import Organization
 from apps.organizations.models import OrganizationAdmin
@@ -18,7 +19,18 @@ from apps.core.utils.role_decorator import role_required
 
 class OrganizationSerializer(get_general_serializer(Organization)):
     """Serializer for the Organization model."""
-    pass
+    links = serializers.SerializerMethodField()
+
+    def get_links(self, obj):
+        """Gets the links for the application state"""
+        request = self.context.get('request')
+        links = {
+            "self": request.build_absolute_uri(
+                reverse('organization_detail', args=[obj.id])
+            )
+        }
+
+        return links
 
 
 @api_view(['GET', 'POST'])
@@ -30,7 +42,11 @@ def organizations(request):
     """Get all organizations or create a new one."""
     if request.method == 'GET':
         organizations = Organization.objects.all()
-        serializer = OrganizationSerializer(organizations, many=True)
+        serializer = OrganizationSerializer(
+            organizations,
+            context={'request': request},
+            many=True
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
@@ -59,7 +75,10 @@ def organization_detail(request, pk=None):
     organization = get_object_or_404(Organization, pk=pk)
 
     if request.method == 'GET':
-        serializer = OrganizationSerializer(organization)
+        serializer = OrganizationSerializer(
+            organization,
+            context={'request': request}
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'PUT':
