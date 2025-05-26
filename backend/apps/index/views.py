@@ -27,7 +27,7 @@ def stats(request):
 
 @api_view(['GET'])
 def index(request):
-    """API root index view."""
+    """API root index view. Return a list of all endpoints"""
     return Response({
         "message": "Welcome to the eVotes API Version 1.0",
         "endpoints": {

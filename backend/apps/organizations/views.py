@@ -60,7 +60,7 @@ def organizations(request):
                 serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['GET', 'PUT', 'DELETE'])
+@api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
 @authentication_classes([AdminJWTAuthentication])
 @permission_classes([IsAuthenticated])
 @role_required(['superadmin'])
@@ -83,7 +83,10 @@ def organization_detail(request, pk=None):
 
     elif request.method == 'PUT':
         serializer = OrganizationSerializer(
-            organization, data=request.data, partial=True)
+            organization, data=request.data,
+            context={'request': request},
+            partial=True
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
