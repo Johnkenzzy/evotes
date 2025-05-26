@@ -43,24 +43,13 @@ def ballots(request, election_id=None):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
-        if not request.data:
-            return Response(
-                {"error": "Request body is empty"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
         title = request.data.get('title')
-        if not title:
-            return Response(
-                {"error": "Title is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
         if Ballot.objects.filter(election=election, title=title).exists():
             return Response(
                 {"error": "Ballot title already exists"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        data = data.request.copy()
+        data = request.data.copy()
         data['election'] = str(election.id)
         serializer = BallotSerializer(data=data)
         if serializer.is_valid():
@@ -72,11 +61,11 @@ def ballots(request, election_id=None):
 
 
 @api_view(['GET'])
+@role_required(['voter'])
 @authentication_classes([VoterJWTAuthentication])
 @permission_classes([IsAuthenticated])
-@role_required(['voter'])
 def get_ballots(request, election_id=None):
-    """Get all ballots for an election ."""
+    """Get all ballots for an election(for voters only)."""
     if not is_valid_uuid(election_id):
         return Response(
             {"error": "Invalid election ID"},
@@ -127,7 +116,8 @@ def ballot_detail(request, election_id=None, pk=None):
                 status=status.HTTP_401_UNAUTHORIZED)
 
         ballot.delete()
-        return Response([], status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            [], status=status.HTTP_204_NO_CONTENT)
 
 
 class OptionSerializer(get_general_serializer(Option)):
@@ -155,24 +145,8 @@ def options(request, ballot_id=None):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
-        if not hasattr(request, 'admin') or not request.admin:
-            return Response(
-                {'error': 'Unauthorized access'},
-                status=status.HTTP_401_UNAUTHORIZED)
-
-        if not request.data:
-            return Response(
-                {"error": "Request body is empty"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
+        # Check for duplicate option names
         name = request.data.get('name')
-        if not name:
-            return Response(
-                {"error": "Name is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
         if Option.objects.filter(ballot=ballot, name=name).exists():
             return Response(
                 {"error": "Option name already exists"},

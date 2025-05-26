@@ -21,7 +21,7 @@ class Voter(BaseModel, models.Model):
     is_verified = models.BooleanField(default=False)
     role = models.CharField(max_length=30,
                             default='voter')
-    
+
     @property
     def is_authenticated(self):
         return True

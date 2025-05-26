@@ -4,9 +4,10 @@ from rest_framework.decorators import (api_view,
                                        permission_classes)
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, serializers
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 
 from apps.organizations.models import Organization
 from apps.organizations.models import OrganizationAdmin
@@ -18,7 +19,18 @@ from apps.core.utils.role_decorator import role_required
 
 class OrganizationSerializer(get_general_serializer(Organization)):
     """Serializer for the Organization model."""
-    pass
+    links = serializers.SerializerMethodField()
+
+    def get_links(self, obj):
+        """Gets the links for the application state"""
+        request = self.context.get('request')
+        links = {
+            "self": request.build_absolute_uri(
+                reverse('organization_detail', args=[obj.id])
+            )
+        }
+
+        return links
 
 
 @api_view(['GET', 'POST'])
@@ -30,33 +42,14 @@ def organizations(request):
     """Get all organizations or create a new one."""
     if request.method == 'GET':
         organizations = Organization.objects.all()
-        serializer = OrganizationSerializer(organizations, many=True)
+        serializer = OrganizationSerializer(
+            organizations,
+            context={'request': request},
+            many=True
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
-        # Validate the request data
-        if not request.data:
-            return Response(
-                {"error": "Request body is empty"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        if request.data.get('name') is None:
-            return Response(
-                {"error": "Name is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        email = request.data.get('email')
-        if email is None:
-            return Response(
-                {"error": "Email is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        if Organization.objects.filter(email=email).exists():
-            return Response(
-                {"error": "Organization with this email already exists"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
         # Create the organization
         serializer = OrganizationSerializer(data=request.data)
         if serializer.is_valid():
@@ -67,7 +60,7 @@ def organizations(request):
                 serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['GET', 'PUT', 'DELETE'])
+@api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
 @authentication_classes([AdminJWTAuthentication])
 @permission_classes([IsAuthenticated])
 @role_required(['superadmin'])
@@ -82,12 +75,18 @@ def organization_detail(request, pk=None):
     organization = get_object_or_404(Organization, pk=pk)
 
     if request.method == 'GET':
-        serializer = OrganizationSerializer(organization)
+        serializer = OrganizationSerializer(
+            organization,
+            context={'request': request}
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'PUT':
         serializer = OrganizationSerializer(
-            organization, data=request.data, partial=True)
+            organization, data=request.data,
+            context={'request': request},
+            partial=True
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -133,35 +132,6 @@ def admins(request):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
-        # Validate the request data
-        if not request.data:
-            return Response(
-                {"error": "Request body is empty"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        email = request.data.get('email')
-        if email is None:
-            return Response(
-                {"error": "Email is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        if OrganizationAdmin.objects.filter(
-                organization=org_id, email=email).exists():
-            return Response({
-                "error": "Organization admin with this email already exists"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        if request.data.get('full_name') is None:
-            return Response(
-                {"error": "Full name is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        if request.data.get('password') is None:
-            return Response(
-                {"error": "Password is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
         data = request.data.copy()
         data['organization'] = str(org_id)
         # Create the organization admin
@@ -207,4 +177,5 @@ def admin_detail(request, pk=None):
 
     elif request.method == 'DELETE':
         admin.delete()
-        return Response([], status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            [], status=status.HTTP_204_NO_CONTENT)

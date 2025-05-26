@@ -27,10 +27,10 @@ class ForceSlashMiddleware:
             split = urlsplit(request.get_full_path())
             new_path = urlunsplit(
                 (split.scheme,
-                split.netloc,
-                split.path + '/',
-                split.query,
-                split.fragment)
+                 split.netloc,
+                 split.path + '/',
+                 split.query,
+                 split.fragment)
                 )
 
             # Use 307 to preserve method (POST, PUT, etc.)

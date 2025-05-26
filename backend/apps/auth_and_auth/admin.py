@@ -9,7 +9,6 @@ from apps.voters.models import Voter
 from apps.auth_and_auth.models import BlacklistedToken
 
 
-
 class AdminJWTAuthentication(BaseAuthentication):
     """Authenticates admin users using JWT tokens."""
     def authenticate(self, request):

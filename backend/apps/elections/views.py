@@ -34,24 +34,6 @@ def elections(request):
             serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
-        if not hasattr(request, 'admin') or not request.admin:
-            return Response(
-                {'error': 'Unauthorized access'},
-                status=status.HTTP_401_UNAUTHORIZED)
-        # Validate the request data
-        if not request.data:
-            return Response(
-                {"error": "Request body is empty"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        start_time = request.data.get('start_time', None)
-        end_time = request.data.get('end_time', None)
-        if start_time is None or end_time is None:
-            return Response(
-                {"error": "Start time and end time are required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
         data = request.data.copy()
         data['organization'] = str(org_id)
         # Create the election
@@ -89,10 +71,7 @@ def election_detail(request, pk=None):
             {"error": "Invalid election ID"},
             status=status.HTTP_400_BAD_REQUEST
         )
-
-    org_id = None
-    if hasattr(request, 'admin'):
-        org_id = request.admin.organization.id
+    org_id = request.admin.organization.id
 
     election = get_object_or_404(
         Election, organization=org_id, pk=pk)

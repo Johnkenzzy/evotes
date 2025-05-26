@@ -26,7 +26,7 @@ class Option(BaseModel, models.Model):
             upload_to='candidate_images/',
             blank=True,
             null=True,
-            default='candidate_images/default.jpg' 
+            default='candidate_images/default.jpg'
             )
     votes = models.IntegerField(default=0)
 
