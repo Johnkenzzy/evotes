@@ -4,6 +4,12 @@ FROM python:3.11-slim
 # Set work directory
 WORKDIR /evotes
 
+# Install system packages required by psycopg2-binary and others
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev gcc build-essential \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install dependencies
 COPY requirements.txt .
 RUN pip install --upgrade pip
