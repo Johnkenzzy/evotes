@@ -9,31 +9,12 @@ services:
     startCommand: sh -c "python wait_for_db.py && python manage.py runserver 0.0.0.0:8000"
     envVars:
       - key: DB_NAME
-        value: evotes_dev_db
+        value: evotes_db
       - key: DB_USER
         value: evotes_dev
       - key: DB_PASSWORD
-        value: evotes_dev_pwd
+
       - key: DB_HOST
-        value: evotes-db.internal  # the private service hostname Render assigns
+
       - key: DB_PORT
         value: "5432"
-    dependsOn:
-      - evotes-db
-
-  - type: private_service
-    name: evotes-db
-    env: docker
-    plan: free
-    dockerfilePath: null
-    image: postgres:15
-    envVars:
-      - key: POSTGRES_USER
-        value: evotes_dev
-      - key: POSTGRES_PASSWORD
-        value: evotes_dev_pwd
-      - key: POSTGRES_DB
-        value: evotes_dev_db
-    disk:
-      name: evotes-db-data
-      sizeGB: 5
