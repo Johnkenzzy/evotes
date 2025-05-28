@@ -112,8 +112,8 @@ def ballot_detail(request, election_id=None, pk=None):
     elif request.method == 'DELETE':
         if not hasattr(request, 'admin') or request.admin.role != 'superadmin':
             return Response(
-                {'error': 'Unauthorized access'},
-                status=status.HTTP_401_UNAUTHORIZED)
+                {'error': 'forbidden access'},
+                status=status.HTTP_403_FORBIDDEN)
 
         ballot.delete()
         return Response(
@@ -218,8 +218,8 @@ def option_detail(request, ballot_id=None, pk=None):
     elif request.method == 'DELETE':
         if request.admin.role != 'superadmin':
             return Response(
-                {'error': 'Unauthorized access'},
-                status=status.HTTP_401_UNAUTHORIZED)
+                {'error': 'Forbidden access'},
+                status=status.HTTP_403_FORBIDDEN)
 
         option.delete()
         return Response([], status=status.HTTP_204_NO_CONTENT)
