@@ -1,0 +1,36 @@
+services:
+  - type: psql
+    name: evotes-db
+    plan: free
+    envVars:
+      - key: POSTGRES_USER
+        value: evotes_dev
+      - key: POSTGRES_PASSWORD
+        value: evotes_dev_pwd
+      - key: POSTGRES_DB
+        value: evotes_dev_db
+    # Render handles volume/persistence automatically for managed postgres
+
+  - type: web
+    name: evotes-web
+    env: docker
+    plan: free
+    repo: https://github.com/johnkenzzy/evotes
+    branch: main
+    dockerfilePath: backend/Dockerfile
+    startCommand: sh -c "python wait_for_db.py && python manage.py runserver 0.0.0.0:8000"
+    envVars:
+      - key: DB_NAME
+        value: evotes_dev_db
+      - key: DB_USER
+        value: evotes_dev
+      - key: DB_PASSWORD
+        value: evotes_dev_pwd
+      - key: DB_HOST
+        fromService:
+          name: evotes-db
+          property: host
+      - key: DB_PORT
+        value: "5432"
+    dependsOn:
+      - evotes-db
