@@ -1,10 +1,10 @@
 import time
-import psycopg
-from psycopg.errors import OperationalError
+import psycopg2
+from psycopg2.errors import OperationalError
 
 while True:
     try:
-        conn = psycopg.connect(
+        conn = psycopg2.connect(
             dbname="evotes_dev_db",
             user="evotes_dev",
             password="evotes_dev_pwd",
