@@ -90,8 +90,8 @@ def voter_detail(request, pk=None):
     elif request.method == 'DELETE':
         if request.admin.role != 'superadmin':
             return Response(
-                {'error': 'Unauthorized access'},
-                status=status.HTTP_401_UNAUTHORIZED)
+                {'error': 'Forbidden access'},
+                status=status.HTTP_403_FORBIDDEN)
 
         voter.delete()
         return Response([], status=status.HTTP_204_NO_CONTENT)
