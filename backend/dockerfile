@@ -14,5 +14,8 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
+# Run migration
+ENTRYPOINT ["/migrate.sh"]
+
 # Run server
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
