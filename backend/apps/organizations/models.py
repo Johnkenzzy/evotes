@@ -44,13 +44,12 @@ class OrganizationAdmin(AbstractBaseUser, PermissionsMixin, BaseModel):
     groups = models.ManyToManyField(
         Group,
         related_name='organization_admins',
-        null=True
+        blank=True,
     )
     user_permissions = models.ManyToManyField(
         Permission,
         related_name='organization_admins_permissions',  # changed from default
         blank=True,                                      # 'user_set'
-        null=True
     )
     organization = models.ForeignKey(
         Organization,
