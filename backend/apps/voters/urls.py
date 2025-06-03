@@ -18,6 +18,11 @@ urlpatterns = [
         name='voter_detail'
         ),
     path(
+        'voter/<str:pk>/',
+        views.get_voter,
+        name='get_voter'
+        ),
+    path(
         '<str:ballot_id>/cast_votes/',
         views.cast_votes,
         name='cast_votes'
