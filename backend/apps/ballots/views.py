@@ -39,7 +39,11 @@ def ballots(request, election_id=None):
 
     if request.method == 'GET':
         ballots = Ballot.objects.filter(election=election)
-        serializer = BallotSerializer(ballots, many=True)
+        serializer = BallotSerializer(
+            ballots,
+            context={'request': request},
+            many=True
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
@@ -74,7 +78,11 @@ def get_ballots(request, election_id=None):
     election = get_object_or_404(Election, id=election_id)
 
     ballots = Ballot.objects.filter(election=election)
-    serializer = BallotSerializer(ballots, many=True)
+    serializer = BallotSerializer(
+        ballots,
+        context={'request': request},
+        many=True
+    )
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -93,7 +101,10 @@ def ballot_detail(request, election_id=None, pk=None):
     ballot = get_object_or_404(Ballot, pk=pk, election=election)
 
     if request.method == 'GET':
-        serializer = BallotSerializer(ballot)
+        serializer = BallotSerializer(
+            ballot,
+            context={'request': request}
+        )
         return Response(
             serializer.data, status=status.HTTP_200_OK)
 
@@ -141,7 +152,11 @@ def options(request, ballot_id=None):
 
     if request.method == 'GET':
         options = Option.objects.filter(ballot=ballot)
-        serializer = OptionSerializer(options, many=True)
+        serializer = OptionSerializer(
+            options,
+            context={'request': request},
+            many=True
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
@@ -180,7 +195,11 @@ def get_options(request, ballot_id=None):
 
     if request.method == 'GET':
         options = Option.objects.filter(ballot=ballot)
-        serializer = OptionSerializer(options, many=True)
+        serializer = OptionSerializer(
+            options,
+            context={'request': request},
+            many=True
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -200,7 +219,10 @@ def option_detail(request, ballot_id=None, pk=None):
     option = get_object_or_404(Option, pk=pk, ballot=ballot)
 
     if request.method == 'GET':
-        serializer = OptionSerializer(option)
+        serializer = OptionSerializer(
+            option,
+            context={'request': request}
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'PUT':
