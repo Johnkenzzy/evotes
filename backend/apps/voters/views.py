@@ -31,7 +31,11 @@ def voters(request):
 
     if request.method == 'GET':
         voters = Voter.objects.filter(organization=org_id)
-        serializer = VoterSerializer(voters, many=True)
+        serializer = VoterSerializer(
+            voters,
+            context={'request': request},
+            many=True
+        )
         return Response(
             serializer.data, status=status.HTTP_200_OK)
 
@@ -55,6 +59,36 @@ def voters(request):
             serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@api_view(['GET'])
+@authentication_classes([VoterJWTAuthentication])
+@permission_classes([IsAuthenticated])
+@role_required(['voter'])
+def get_voter(request, pk=None):
+    """Gets a voter."""
+    if pk == 'me':
+        serializer = VoterSerializer(
+            request.voter,
+            context={'request': request}
+        )
+        return Response(
+            serializer.data, status=status.HTTP_200_OK)
+    else:
+        if not is_valid_uuid(pk):
+            return Response(
+                {"error": "Invalid voter ID"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    org_id = request.admin.organization.id
+    voter = get_object_or_404(Voter, organization=org_id, pk=pk)
+
+    serializer = VoterSerializer(
+        voter,
+        context={'request': request}
+    )
+    return Response(
+        serializer.data, status=status.HTTP_200_OK)
+
+
 @api_view(['GET', 'PUT', 'DELETE'])
 @authentication_classes([AdminJWTAuthentication])
 @permission_classes([IsAuthenticated])
@@ -70,7 +104,10 @@ def voter_detail(request, pk=None):
     voter = get_object_or_404(Voter, organization=org_id, pk=pk)
 
     if request.method == 'GET':
-        serializer = VoterSerializer(voter)
+        serializer = VoterSerializer(
+            voter,
+            context={'request': request}
+        )
         return Response(
             serializer.data, status=status.HTTP_200_OK)
 
@@ -179,7 +216,11 @@ def get_votes(request, ballot_id=None):
 
     if request.method == 'GET':
         votes = Vote.objects.filter(ballot=ballot)
-        serializer = VoteSerializer(votes, many=True)
+        serializer = VoteSerializer(
+            votes,
+            context={'request': request},
+            many=True
+        )
         return Response(
             serializer.data, status=status.HTTP_200_OK)
 
@@ -200,7 +241,10 @@ def vote_detail(request, ballot_id=None):
     vote = get_object_or_404(Vote, ballot=ballot.id, voter=voter.id)
 
     if request.method == 'GET':
-        serializer = VoteSerializer(vote)
+        serializer = VoteSerializer(
+            vote,
+            context={'request': request}
+        )
         return Response(
             serializer.data, status=status.HTTP_200_OK)
 
