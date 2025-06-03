@@ -103,7 +103,10 @@ def register(request):
         "password": password,
         "organization": organization.id
         }
-    admin_serializer = OrganizationAdminSerializer(data=admin_data)
+    admin_serializer = OrganizationAdminSerializer(
+        data=admin_data,
+        context={'request': request}
+    )
     if not admin_serializer.is_valid():
         organization.delete()
         return Response(
