@@ -1,3 +1,4 @@
+import re
 from rest_framework.decorators import (api_view,
                                        parser_classes,
                                        authentication_classes,
@@ -7,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework import status, serializers
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
-from django.urls import reverse
+from django.views.decorators.cache import cache_page
 
 from apps.organizations.models import Organization
 from apps.organizations.models import OrganizationAdmin
@@ -19,18 +20,7 @@ from apps.core.utils.role_decorator import role_required
 
 class OrganizationSerializer(get_general_serializer(Organization)):
     """Serializer for the Organization model."""
-    links = serializers.SerializerMethodField()
-
-    def get_links(self, obj):
-        """Gets the links for the application state"""
-        request = self.context.get('request')
-        links = {
-            "self": request.build_absolute_uri(
-                reverse('organization_detail', args=[obj.id])
-            )
-        }
-
-        return links
+    pass
 
 
 @api_view(['GET', 'POST'])
@@ -38,6 +28,7 @@ class OrganizationSerializer(get_general_serializer(Organization)):
 @permission_classes([IsAuthenticated])
 @role_required(['superadmin'])
 @parser_classes([JSONParser, MultiPartParser, FormParser])
+@cache_page(60 * 5)
 def organizations(request):
     """Get all organizations or create a new one."""
     if request.method == 'GET':
@@ -122,13 +113,18 @@ class OrganizationAdminSerializer(get_general_serializer(OrganizationAdmin)):
 @authentication_classes([AdminJWTAuthentication])
 @permission_classes([IsAuthenticated])
 @role_required(['superadmin'])
+@cache_page(60 * 5)
 def admins(request):
-    """Get all organization admins or create a new one."""
+    """Get all organization's admins or create a new one."""
     org_id = request.admin.organization.id
 
     if request.method == 'GET':
         admins = OrganizationAdmin.objects.filter(organization=org_id)
-        serializer = OrganizationAdminSerializer(admins, many=True)
+        serializer = OrganizationAdminSerializer(
+            admins,
+            context={'request': request},
+            many=True
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
@@ -150,17 +146,31 @@ def admins(request):
 @role_required(['superadmin'])
 def admin_detail(request, pk=None):
     """Get, update or delete a single organization admin by ID."""
-    if not is_valid_uuid(pk):
-        return Response(
-            {"error": "Invalid admin ID"},
-            status=status.HTTP_400_BAD_REQUEST
+    if pk == 'me' and request.method == 'GET':
+        serializer = OrganizationAdminSerializer(
+            request.admin,
+            context={'request': request}
         )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    else:
+        if not is_valid_uuid(pk):
+            return Response(
+                {"error": "Invalid admin ID"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
     org_id = request.admin.organization.id
     admin = get_object_or_404(
-            OrganizationAdmin, organization=org_id, pk=pk)
+            OrganizationAdmin,
+            organization=org_id,
+            pk=pk
+    )
 
     if request.method == 'GET':
-        serializer = OrganizationAdminSerializer(admin)
+        serializer = OrganizationAdminSerializer(
+            admin,
+            context={'request': request}
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'PUT':
