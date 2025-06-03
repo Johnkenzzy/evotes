@@ -29,7 +29,11 @@ def elections(request):
 
     if request.method == 'GET':
         elections = Election.objects.filter(organization=org_id)
-        serializer = ElectionSerializer(elections, many=True)
+        serializer = ElectionSerializer(
+            elections,
+            context={'request': request},
+            many=True
+        )
         return Response(
             serializer.data, status=status.HTTP_200_OK)
 
@@ -55,7 +59,11 @@ def get_elections(request):
     org_id = request.voter.organization.id
 
     elections = Election.objects.filter(organization=org_id)
-    serializer = ElectionSerializer(elections, many=True)
+    serializer = ElectionSerializer(
+        elections,
+        context={'request': request},
+        many=True
+    )
     return Response(
         serializer.data, status=status.HTTP_200_OK)
 
@@ -77,7 +85,10 @@ def election_detail(request, pk=None):
         Election, organization=org_id, pk=pk)
 
     if request.method == 'GET':
-        serializer = ElectionSerializer(election)
+        serializer = ElectionSerializer(
+            election,
+            context={'request': request}
+        )
         return Response(
             serializer.data, status=status.HTTP_200_OK)
 
